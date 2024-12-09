@@ -2,6 +2,8 @@
 id: 002
 status: accepted
 date: 2020-04-01
+deciders:
+  - Timo Reymann
 ---
 
 

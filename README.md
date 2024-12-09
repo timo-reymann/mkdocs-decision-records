@@ -20,6 +20,9 @@ Manage decision records with mkdocs in a customizable and minimal fashion.
        decisions_folder: adr
        # Optional prefix to prepend to ticket numbers
        ticket_url_prefix: https://ticket.example.com/
+       # Configure amount of required deciders
+       required_deciders_count: 1
+       # Configure available stages and the badge colors
        lifecycle_stages:
          {status}: {color}
    ```

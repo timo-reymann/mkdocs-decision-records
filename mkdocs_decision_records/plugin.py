@@ -11,8 +11,12 @@ from mkdocs_decision_records._markdown_utils import _list, _meta_table
 
 CONFIG_DECISIONS_FOLDER_KEY = "decisions_folder"
 CONFIG_TICKET_URL_PREFIX = "ticket_url_prefix"
+
 CONFIG_LIFECYCLE_COLORS_KEY = "lifecycle_stages"
 CONFIG_DECISIONS_FOLDER_DEFAULT = "adr"
+
+CONFIG_REQUIRED_DECIDERS_COUNT_KEY = "required_deciders_count"
+CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT = 1
 
 DR_TITLE_WITH_NUM = re.compile(r'\d{3,}.*')
 
@@ -44,6 +48,7 @@ class DecisionRecordsPlugin(BasePlugin):
         (CONFIG_DECISIONS_FOLDER_KEY, config_options.Type(str, default=CONFIG_DECISIONS_FOLDER_DEFAULT)),
         (CONFIG_TICKET_URL_PREFIX, config_options.Type(str, default=None)),
         (CONFIG_LIFECYCLE_COLORS_KEY, config_options.Type(dict, default=DEFAULT_LIFECYCLE_COLORS)),
+        (CONFIG_REQUIRED_DECIDERS_COUNT_KEY, config_options.Type(int, default=CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT))
     )
 
     def on_page_markdown(self, markdown: str, page: Page, config: MkDocsConfig, files: Files):
@@ -53,16 +58,23 @@ class DecisionRecordsPlugin(BasePlugin):
         title = page.meta.get("title", None) or page.title
         dr_id = _require_meta(page, "id")
 
+        if dr_id == 0:
+            page.title = "000 - Template"
+            return markdown
+
         meta = [
-            ("Status",  self._create_status_badge(page)),
+            ("Status", self._create_status_badge(page)),
             ("Date", _require_meta(page, "date")),
         ]
 
-        deciders = page.meta.get("deciders", None)
-        if deciders is not None:
+        deciders = page.meta.get("deciders", [])
+        if len(deciders) < self.required_deciders_count:
+            raise InvalidMetaDataError(page, "deciders",
+                                       f"At least {self.required_deciders_count} deciders are required for a decision")
+        elif len(deciders) > 0:
             meta.append((
-                "Deciders",
-                "\n".join(_list(deciders)),
+                "Deciders" if len(deciders) > 1 else "Decider",
+                "\n".join(_list(deciders)) if len(deciders) > 1 else deciders[0],
             ))
 
         ticket = page.meta.get("ticket", None)
@@ -89,20 +101,27 @@ class DecisionRecordsPlugin(BasePlugin):
             f"{markdown}"
         )
 
-    def _create_status_badge(self, page):
-        status = _require_meta(page, "status")
+    @property
+    def lifecycles(self) -> dict[str, str]:
         configured_lifecycle_colors = self.config.get(CONFIG_LIFECYCLE_COLORS_KEY, None)
-        effective_lifecycle_colors = {
+        return {
             **DEFAULT_LIFECYCLE_COLORS,
             **configured_lifecycle_colors,
         }
-        status_color = effective_lifecycle_colors.get(status, None)
+
+    @property
+    def required_deciders_count(self):
+        return self.config.get(CONFIG_REQUIRED_DECIDERS_COUNT_KEY, CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT)
+
+    def _create_status_badge(self, page):
+        status = _require_meta(page, "status")
+
+        status_color = self.lifecycles.get(status, None)
         if status_color is None:
-            status_badge = status
-        else:
-            status_badge = (
-                f"<span style='color: white;background:{status_color};padding:.4em;border-radius:8px;font-size:100%;'>"
-                f"{status}"
-                f"</span>"
-            )
-        return status_badge
+            raise InvalidMetaDataError(page, "status", f"Invalid status {status}")
+
+        return (
+            f"<span style='color: white;background:{status_color};padding:.4em;border-radius:8px;font-size:100%;'>"
+            f"{status}"
+            f"</span>"
+        )

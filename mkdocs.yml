@@ -5,3 +5,4 @@ plugins:
       decisions_folder: adr
       ticket_url_prefix: https://google.com/
       lifecycle_stages: { }
+      required_deciders_count: 0
