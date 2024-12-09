@@ -1,3 +1,10 @@
+## [1.2.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.1.0...1.2.0) (2024-12-09)
+
+
+### Features
+
+* Check for same id of decision records ([f3c76a4](https://github.com/timo-reymann/mkdocs-decision-records/commit/f3c76a4bde2c93bc9b4b6af8a7fde6120948fbcb))
+
 ## [1.1.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.0.0...1.1.0) (2024-12-09)
 
 
