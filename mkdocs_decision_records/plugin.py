@@ -62,6 +62,12 @@ class DecisionRecordsPlugin(BasePlugin):
             page.title = "000 - Template"
             return markdown
 
+        same_id_pages = [p.src_path for p in files.documentation_pages() if p is not page.file and p.page and p.page.meta and p.page.meta.get("id", None) == dr_id]
+        if len(same_id_pages) > 0:
+            pages = ", ".join(same_id_pages)
+            raise InvalidMetaDataError(page, "id",f"Uses same id as {pages}")
+
+
         meta = [
             ("Status", self._create_status_badge(page)),
             ("Date", _require_meta(page, "date")),
