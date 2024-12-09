@@ -63,10 +63,6 @@ workflows:
       - semantic-release/with_existing_config:
           name: semantic-release
           additional_packages: "@google/semantic-release-replace-plugin"
-          requires:
-            - integration-test-win
-            - integration-test-macos
-            - integration-test-linux
           filters:
             branches:
               only:
