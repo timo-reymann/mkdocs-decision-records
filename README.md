@@ -2,7 +2,7 @@ mkdocs-decision-records
 ==
 
 <p align="center">
-	<img width="300" src="https://raw.githubusercontent.com/timo-reymann/mkdocs-decision-records/main/.github/images/demo.png">
+	<img width="600" src="https://raw.githubusercontent.com/timo-reymann/mkdocs-decision-records/main/.github/images/demo.png">
     <br />
     Manage decision records with mkdocs in a customizable and minimal fashion.
 </p>
