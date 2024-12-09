@@ -63,7 +63,7 @@ infrastructure.
 * Bad, because the integration might take some time to call the script on every change (can be a bit better with
   debounce)
 
-## Links 
+## Links
 
 * [GraalVM](https://www.graalvm.org/)
 * [GraalVM Java Interoperability](https://www.graalvm.org/reference-manual/js/JavaInteroperability/)
