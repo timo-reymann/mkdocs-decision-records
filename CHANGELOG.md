@@ -1,3 +1,10 @@
+## [1.1.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.0.0...1.1.0) (2024-12-09)
+
+
+### Features
+
+* Add demo link to README ([49f80c4](https://github.com/timo-reymann/mkdocs-decision-records/commit/49f80c43cbcc2cb55ec7c57bae80879dcbf52f2c))
+
 ## 1.0.0 (2024-12-09)
 
 
