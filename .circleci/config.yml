@@ -4,6 +4,7 @@ orbs:
   python: circleci/python@3.0.0
   codecov: codecov/codecov@5.0.3
   github-utils: trustedshops-public/github-utils@1.1.2
+  semantic-release: trustedshops-public/semantic-release@6.0.0
 
 executors:
   node:
