@@ -1,0 +1,6 @@
+site_name: mkdocs-decision-records
+plugins:
+  - decision-records:
+      decisions_folder: adr
+      ticket_url_prefix: https://google.com/
+theme: material

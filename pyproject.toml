@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "mkdocs-decision-records"
+version = "0.1.0"
+description = "Manage decision records with mkdocs in a customizable and minimal fashion."
+authors = ["Timo Reymann <mail@timo-reymann.de>"]
+readme = "README.md"
+include = ["mkdocs_decision_records"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.5.48"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.plugins."mkdocs.plugins"]
+decision-records = "mkdocs_decision_records.plugin:DecisionRecordsPlugin"
