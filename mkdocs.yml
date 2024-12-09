@@ -1,6 +1,7 @@
 site_name: mkdocs-decision-records
+theme: material
 plugins:
   - decision-records:
       decisions_folder: adr
       ticket_url_prefix: https://google.com/
-theme: material
+      lifecycle_stages: { }
