@@ -7,13 +7,15 @@ mkdocs-decision-records
     Manage decision records with mkdocs in a customizable and minimal fashion.
 </p>
 
-
-
 ## Features
 
 - Customizable status colors and lifecycle
 - Enforces information to be present for ADRs
 - Allows description being kept as markdown
+
+## Demo
+
+[You can find a Demo on GitHub Pages](https://timo-reymann.github.io/mkdocs-decision-records/)
 
 ## Installation
 
