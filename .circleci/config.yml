@@ -67,3 +67,5 @@ workflows:
             branches:
               only:
                 - main
+          requires:
+            - build-gh-pages-demo
