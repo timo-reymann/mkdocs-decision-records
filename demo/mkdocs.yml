@@ -1,4 +1,4 @@
-site_name: mkdocs-decision-records
+site_name: Demo docs
 theme: material
 plugins:
   - decision-records:
@@ -6,3 +6,9 @@ plugins:
       ticket_url_prefix: https://google.com/
       lifecycle_stages: { }
       required_deciders_count: 0
+nav:
+  - index.md
+  - Architecture Decision Records:
+      - adr/000-TEMPLATE.md
+      - adr/001.md
+      - adr/002-Solution-for-preview.md
