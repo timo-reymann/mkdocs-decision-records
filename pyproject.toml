@@ -24,7 +24,9 @@ repository = "https://github.com/timo-reymann/mkdocs-decision-records"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-mkdocs = "^1.6.1"
+mkdocs = ">=1.4.0"
+
+[tool.poetry.dev-dependencies]
 mkdocs-material = "^9.5.48"
 
 [build-system]
