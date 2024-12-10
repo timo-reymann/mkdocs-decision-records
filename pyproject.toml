@@ -4,7 +4,23 @@ version = "1.2.0"
 description = "Manage decision records with mkdocs in a customizable and minimal fashion."
 authors = ["Timo Reymann <mail@timo-reymann.de>"]
 readme = "README.md"
-include = ["mkdocs_decision_records"]
+packages = [
+    { include = "mkdocs_decision_records" }
+]
+include = [
+    "LICENSE"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Framework :: MkDocs",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation"
+]
+repository = "https://github.com/timo-reymann/mkdocs-decision-records"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/timo-reymann/mkdocs-decision-records/issues"
 
 [tool.poetry.dependencies]
 python = "^3.12"
