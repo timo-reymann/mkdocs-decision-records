@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.2.1...1.2.2) (2024-12-10)
+
+
+### Bug Fixes
+
+* Make material dev dependency to avoid pulling in theme dependency ([e64d99a](https://github.com/timo-reymann/mkdocs-decision-records/commit/e64d99a2992c0d5b81fb86a1bbfcce6e9f6bd128))
+
 ## [1.2.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.2.0...1.2.1) (2024-12-10)
 
 
