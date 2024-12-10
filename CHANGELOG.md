@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.2.0...1.2.1) (2024-12-10)
+
+
+### Bug Fixes
+
+* Add metadata to pypi project ([6b89f4b](https://github.com/timo-reymann/mkdocs-decision-records/commit/6b89f4beff40e1126f94e103819c6ee696c17f9d))
+
 ## [1.2.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.1.0...1.2.0) (2024-12-09)
 
 
