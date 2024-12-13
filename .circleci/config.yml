@@ -15,6 +15,24 @@ executors:
       - image: cimg/python:3.12
 
 jobs:
+  unit-test:
+    executor: python-linux
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: poetry
+      - run:
+          name: Run tests
+          command: |
+            poetry run coverage run -m pytest --junit-xml test-results/junit.xml --capture=no mkdocs_decision_records/
+            poetry run coverage report
+            poetry run coverage html
+            poetry run coverage xml -i
+      - store_artifacts:
+          path: htmlcov
+      - store_test_results:
+          path: test-results
+      - codecov/upload
   build-gh-pages-demo:
     executor: node
     steps:
@@ -48,11 +66,14 @@ jobs:
 workflows:
   main:
     jobs:
+      - unit-test
       - build-gh-pages-demo:
           filters:
             branches:
               only:
                 - main
+          requires:
+            - unit-test
       - pip-publish:
           name: publish-pypi
           filters:

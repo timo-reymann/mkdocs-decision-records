@@ -52,7 +52,7 @@ class DecisionRecordsPlugin(BasePlugin):
     )
 
     def on_page_markdown(self, markdown: str, page: Page, config: MkDocsConfig, files: Files):
-        if not page.file.src_path.startswith(self.config.get(CONFIG_DECISIONS_FOLDER_KEY)):
+        if not page.file.src_path.startswith(self.config.get(CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT)):
             return markdown
 
         title = page.meta.get("title", None) or page.title
@@ -109,7 +109,7 @@ class DecisionRecordsPlugin(BasePlugin):
 
     @property
     def lifecycles(self) -> dict[str, str]:
-        configured_lifecycle_colors = self.config.get(CONFIG_LIFECYCLE_COLORS_KEY, None)
+        configured_lifecycle_colors = self.config.get(CONFIG_LIFECYCLE_COLORS_KEY, {})
         return {
             **DEFAULT_LIFECYCLE_COLORS,
             **configured_lifecycle_colors,
