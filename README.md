@@ -4,6 +4,7 @@ mkdocs-decision-records
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/mkdocs-decision-records)](https://pypi.org/project/mkdocs-decision-records)
 [![LICENSE](https://img.shields.io/github/license/timo-reymann/mkdocs-decision-records)](https://github.com/timo-reymann/mkdocs-decision-records/blob/main/LICENSE)
 [![CircleCI](https://circleci.com/gh/timo-reymann/mkdocs-decision-records.svg?style=shield)](https://app.circleci.com/pipelines/github/timo-reymann/mkdocs-decision-records)
+[![codecov](https://codecov.io/gh/timo-reymann/mkdocs-decision-records/graph/badge.svg?token=EVgb1KIcjC)](https://codecov.io/gh/timo-reymann/mkdocs-decision-records)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=timo-reymann_mkdocs-decision-records&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=timo-reymann_mkdocs-decision-records)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=timo-reymann_mkdocs-decision-records&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=timo-reymann_mkdocs-decision-records)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=timo-reymann_mkdocs-decision-records&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=timo-reymann_mkdocs-decision-records)
