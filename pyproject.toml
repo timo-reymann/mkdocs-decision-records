@@ -37,3 +37,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.plugins."mkdocs.plugins"]
 decision-records = "mkdocs_decision_records.plugin:DecisionRecordsPlugin"
+
+[tool.coverage.run]
+omit = [
+    ".*",
+    "*/site-packages/*",
+    "*/*_test.py",
+    "dev/*"
+]
+
+[tool.coverage.report]
+fail_under = 70
