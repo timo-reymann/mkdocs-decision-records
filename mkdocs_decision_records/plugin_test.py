@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from mkdocs_decision_records.plugin import CONFIG_DECISIONS_FOLDER_KEY, DecisionRecordsPlugin, InvalidMetaDataError
+from mkdocs_decision_records.plugin import CONFIG_DECISIONS_FOLDER_KEY, CONFIG_TICKET_URL_PREFIX, DecisionRecordsPlugin, \
+    InvalidMetaDataError
 
 def test_on_page_markdown():
     plugin = DecisionRecordsPlugin()
@@ -39,3 +40,10 @@ def test_invalid_metadata_error():
     markdown = 'This is a decision record.'
     with pytest.raises(InvalidMetaDataError):
         plugin.on_page_markdown(markdown, page, {}, files)
+
+def test_ticket_text():
+    plugin = DecisionRecordsPlugin()
+    assert plugin._ticket_text('JIRA-1234') == 'JIRA-1234'
+
+    plugin.config[CONFIG_TICKET_URL_PREFIX] = 'https://jira.company.com'
+    assert plugin._ticket_text('JIRA-1234') == "<a href='https://jira.company.com/JIRA-1234'>JIRA-1234</a>"

@@ -52,7 +52,9 @@ class DecisionRecordsPlugin(BasePlugin):
     )
 
     def on_page_markdown(self, markdown: str, page: Page, config: MkDocsConfig, files: Files):
-        if not page.file.src_path.startswith(self.config.get(CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT)):
+        if not page.file.src_path.startswith(
+                self.config.get(CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT)
+        ):
             return markdown
 
         title = page.meta.get("title", None) or page.title
@@ -62,11 +64,7 @@ class DecisionRecordsPlugin(BasePlugin):
             page.title = "000 - Template"
             return markdown
 
-        same_id_pages = [p.src_path for p in files.documentation_pages() if p is not page.file and p.page and p.page.meta and p.page.meta.get("id", None) == dr_id]
-        if len(same_id_pages) > 0:
-            pages = ", ".join(same_id_pages)
-            raise InvalidMetaDataError(page, "id",f"Uses same id as {pages}")
-
+        self._ensure_page_is_unique(dr_id, files, page)
 
         meta = [
             ("Status", self._create_status_badge(page)),
@@ -75,25 +73,26 @@ class DecisionRecordsPlugin(BasePlugin):
 
         deciders = page.meta.get("deciders", [])
         if len(deciders) < self.required_deciders_count:
-            raise InvalidMetaDataError(page, "deciders",
-                                       f"At least {self.required_deciders_count} deciders are required for a decision")
+            raise InvalidMetaDataError(
+                page, "deciders",
+                f"At least {self.required_deciders_count} deciders are required for a decision"
+            )
         elif len(deciders) > 0:
-            meta.append((
-                "Deciders" if len(deciders) > 1 else "Decider",
-                "\n".join(_list(deciders)) if len(deciders) > 1 else deciders[0],
-            ))
+            meta.append(
+                (
+                    "Deciders" if len(deciders) > 1 else "Decider",
+                    "\n".join(_list(deciders)) if len(deciders) > 1 else deciders[0],
+                )
+            )
 
         ticket = page.meta.get("ticket", None)
         if ticket is not None:
-            if self.config.get(CONFIG_TICKET_URL_PREFIX) is not None:
-                ticket_text = f"<a href='{self.config.get(CONFIG_TICKET_URL_PREFIX)}/{ticket}'>{ticket.upper()}</a>"
-            else:
-                ticket_text = ticket.upper()
-
-            meta.append((
-                "Ticket",
-                ticket_text,
-            ))
+            meta.append(
+                (
+                    "Ticket",
+                    self._ticket_text(ticket),
+                )
+            )
 
         meta_info = "\n".join(_meta_table(meta))
 
@@ -119,6 +118,13 @@ class DecisionRecordsPlugin(BasePlugin):
     def required_deciders_count(self):
         return self.config.get(CONFIG_REQUIRED_DECIDERS_COUNT_KEY, CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT)
 
+    def _ensure_page_is_unique(self, dr_id, files, page):
+        same_id_pages = [p.src_path for p in files.documentation_pages() if
+                         p is not page.file and p.page and p.page.meta and p.page.meta.get("id", None) == dr_id]
+        if len(same_id_pages) > 0:
+            pages = ", ".join(same_id_pages)
+            raise InvalidMetaDataError(page, "id", f"Uses same id as {pages}")
+
     def _create_status_badge(self, page):
         status = _require_meta(page, "status")
 
@@ -131,3 +137,9 @@ class DecisionRecordsPlugin(BasePlugin):
             f"{status}"
             f"</span>"
         )
+
+    def _ticket_text(self, ticket: str ):
+        if self.config.get(CONFIG_TICKET_URL_PREFIX) is not None:
+            return f"<a href='{self.config.get(CONFIG_TICKET_URL_PREFIX)}/{ticket}'>{ticket.upper()}</a>"
+
+        return ticket.upper()
