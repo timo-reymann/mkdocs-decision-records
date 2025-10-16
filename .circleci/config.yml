@@ -9,10 +9,10 @@ orbs:
 executors:
   node:
     docker:
-      - image: cimg/python:3.12-node
+      - image: cimg/python:3.14-node
   python-linux:
     docker:
-      - image: cimg/python:3.12
+      - image: cimg/python:3.14
 
 jobs:
   unit-test:
