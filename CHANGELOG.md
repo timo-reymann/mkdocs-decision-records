@@ -1,3 +1,14 @@
+## [2.0.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.2.2...2.0.0) (2025-11-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add superseded_by field
+
+### Features
+
+* Add superseded_by field ([d2e8fde](https://github.com/timo-reymann/mkdocs-decision-records/commit/d2e8fdecfb1803a122f4451e61d33788076669bc))
+
 ## [1.2.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.2.1...1.2.2) (2024-12-10)
 
 
