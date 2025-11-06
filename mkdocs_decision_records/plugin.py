@@ -1,11 +1,16 @@
+import os
 import re
+from pathlib import Path
 
+import yaml
 from mkdocs.config import config_options
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.exceptions import PluginError
 from mkdocs.plugins import BasePlugin
-from mkdocs.structure.files import Files
+from mkdocs.structure.files import File, Files
+from mkdocs.structure.nav import Navigation
 from mkdocs.structure.pages import Page
+from mkdocs.utils.templates import TemplateContext
 
 from mkdocs_decision_records._markdown_utils import _list, _meta_table
 
@@ -18,7 +23,7 @@ CONFIG_DECISIONS_FOLDER_DEFAULT = "adr"
 CONFIG_REQUIRED_DECIDERS_COUNT_KEY = "required_deciders_count"
 CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT = 1
 
-DR_TITLE_WITH_NUM = re.compile(r'\d{3,}.*')
+DR_TITLE_WITH_NUM = re.compile(r"\d{3,}.*")
 
 DEFAULT_LIFECYCLE_COLORS = {
     "accepted": "#28a745",
@@ -33,7 +38,9 @@ class InvalidMetaDataError(PluginError):
     def __init__(self, page: Page, field: str, message: str):
         self.field = field
         self.raw_message = message
-        self.message = f"Invalid metadata for field '{field}' in {page.file.src_path}: {message}"
+        self.message = (
+            f"Invalid metadata for field '{field}' in {page.file.src_path}: {message}"
+        )
 
 
 def _require_meta(page: Page, field: str) -> any:
@@ -45,15 +52,29 @@ def _require_meta(page: Page, field: str) -> any:
 
 class DecisionRecordsPlugin(BasePlugin):
     config_scheme = (
-        (CONFIG_DECISIONS_FOLDER_KEY, config_options.Type(str, default=CONFIG_DECISIONS_FOLDER_DEFAULT)),
+        (
+            CONFIG_DECISIONS_FOLDER_KEY,
+            config_options.Type(str, default=CONFIG_DECISIONS_FOLDER_DEFAULT),
+        ),
         (CONFIG_TICKET_URL_PREFIX, config_options.Type(str, default=None)),
-        (CONFIG_LIFECYCLE_COLORS_KEY, config_options.Type(dict, default=DEFAULT_LIFECYCLE_COLORS)),
-        (CONFIG_REQUIRED_DECIDERS_COUNT_KEY, config_options.Type(int, default=CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT))
+        (
+            CONFIG_LIFECYCLE_COLORS_KEY,
+            config_options.Type(dict, default=DEFAULT_LIFECYCLE_COLORS),
+        ),
+        (
+            CONFIG_REQUIRED_DECIDERS_COUNT_KEY,
+            config_options.Type(int, default=CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT),
+        ),
     )
 
-    def on_page_markdown(self, markdown: str, page: Page, config: MkDocsConfig, files: Files):
+
+    def on_page_markdown(
+        self, markdown: str, page: Page, config: MkDocsConfig, files: Files
+    ):
         if not page.file.src_path.startswith(
-                self.config.get(CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT)
+            self.config.get(
+                CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT
+            )
         ):
             return markdown
 
@@ -74,8 +95,9 @@ class DecisionRecordsPlugin(BasePlugin):
         deciders = page.meta.get("deciders", [])
         if len(deciders) < self.required_deciders_count:
             raise InvalidMetaDataError(
-                page, "deciders",
-                f"At least {self.required_deciders_count} deciders are required for a decision"
+                page,
+                "deciders",
+                f"At least {self.required_deciders_count} deciders are required for a decision",
             )
         elif len(deciders) > 0:
             meta.append(
@@ -94,17 +116,30 @@ class DecisionRecordsPlugin(BasePlugin):
                 )
             )
 
+        status = _require_meta(page, "status")
+        if status == "superseded":
+            superseded_by = page.meta.get("superseded_by", None)
+            if superseded_by is None:
+                raise InvalidMetaDataError(
+                    page,
+                    "superseded_by",
+                    "When setting an ADR to superseded you need to set superseded_by to an ADR id.",
+                )
+
+
+            meta.append(
+                (
+                    "Superseded by",
+                    f"{superseded_by:03d}"
+                )
+            )
+
         meta_info = "\n".join(_meta_table(meta))
 
         header = title if DR_TITLE_WITH_NUM.match(title) else f"{dr_id:03d} - {title}"
         page.title = header
 
-        return (
-            f"{header}\n"
-            f"===\n"
-            f"{meta_info}\n"
-            f"{markdown}"
-        )
+        return f"{header}\n===\n{meta_info}\n{markdown}"
 
     @property
     def lifecycles(self) -> dict[str, str]:
@@ -116,7 +151,9 @@ class DecisionRecordsPlugin(BasePlugin):
 
     @property
     def required_deciders_count(self):
-        return self.config.get(CONFIG_REQUIRED_DECIDERS_COUNT_KEY, CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT)
+        return self.config.get(
+            CONFIG_REQUIRED_DECIDERS_COUNT_KEY, CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT
+        )
 
     def _ensure_page_is_unique(self, dr_id, files, page):
         same_id_pages = [p.src_path for p in files.documentation_pages() if
@@ -138,7 +175,7 @@ class DecisionRecordsPlugin(BasePlugin):
             f"</span>"
         )
 
-    def _ticket_text(self, ticket: str ):
+    def _ticket_text(self, ticket: str):
         if self.config.get(CONFIG_TICKET_URL_PREFIX) is not None:
             return f"<a href='{self.config.get(CONFIG_TICKET_URL_PREFIX)}/{ticket}'>{ticket.upper()}</a>"
 

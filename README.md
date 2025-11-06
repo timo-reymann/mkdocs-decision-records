@@ -113,6 +113,21 @@ mkdocs-decision-records
    * … <!-- numbers of links can vary -->
    ```
 
+## Superseding ADRs
+
+This plugin is opinionated about using `superseded` status.
+
+When setting the status to `superseded`, make to sure also set `superseded_by` to the ADR id it has been replaced with.
+
+```markdown
+---
+# adr details
+status: superseded
+superseded_by: 123
+---
+<!-- Deprecated ADR -->
+```
+
 ## Motivation
 
 I love ADRs and documenting decisions in general. This plugin makes it a bit easier, enforcing basic meta information

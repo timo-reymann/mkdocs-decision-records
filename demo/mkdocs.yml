@@ -12,3 +12,4 @@ nav:
       - adr/000-TEMPLATE.md
       - adr/001.md
       - adr/002-Solution-for-preview.md
+      - adr/003-New-Solution-for-preview.md
