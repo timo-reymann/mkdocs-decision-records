@@ -40,8 +40,7 @@ def test_on_page_markdown():
     result = plugin.on_page_markdown(markdown, page, {}, files)
     assert "Decision 1" in result
 
-
-def test_on_page_markdown_superseded():
+def test_on_page_markdown_superseded_padded():
     plugin = DecisionRecordsPlugin()
     plugin._dr_page_mapping[2] = MagicMock()
     page = MagicMock()
@@ -51,7 +50,7 @@ def test_on_page_markdown_superseded():
         "date": "2021-12-13",
         "deciders": ["decider1", "decider2"],
         "status": "superseded",
-        "superseded_by": "2",
+        "superseded_by": "002",
     }
     page.title = "Decision 1"
     files = MagicMock()
@@ -59,6 +58,41 @@ def test_on_page_markdown_superseded():
     result = plugin.on_page_markdown(markdown, page, {}, files)
     assert "Decision 1" in result
 
+def test_on_page_markdown_superseded_int():
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping[2] = MagicMock()
+    page = MagicMock()
+    page.file.src_path = "adr/decision.md"
+    page.meta = {
+        "id": 1,
+        "date": "2021-12-13",
+        "deciders": ["decider1", "decider2"],
+        "status": "superseded",
+        "superseded_by": 2,
+    }
+    page.title = "Decision 1"
+    files = MagicMock()
+    markdown = "This is a decision record."
+    result = plugin.on_page_markdown(markdown, page, {}, files)
+    assert "Decision 1" in result
+
+def test_on_page_markdown_superseded_invalid():
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping[2] = MagicMock()
+    page = MagicMock()
+    page.file.src_path = "adr/decision.md"
+    page.meta = {
+        "id": 1,
+        "date": "2021-12-13",
+        "deciders": ["decider1", "decider2"],
+        "status": "superseded",
+        "superseded_by": "3",
+    }
+    page.title = "Decision 1"
+    files = MagicMock()
+    markdown = "This is a decision record."
+    with pytest.raises(InvalidMetaDataError):
+        plugin.on_page_markdown(markdown, page, {}, files)
 
 def test_on_files():
     plugin = DecisionRecordsPlugin()
