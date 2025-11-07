@@ -48,7 +48,8 @@ mkdocs-decision-records
    ```markdown
    ---
    id: 000
-   status: proposed | rejected | accepted | deprecated | … | superseded by
+   status: proposed | rejected | accepted | deprecated | … | superseded
+   [superseded_by: <id it has been replaced with>]
    date: YYYY-MM-DD
    deciders:
       - decider 1
