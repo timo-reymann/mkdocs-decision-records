@@ -1,16 +1,12 @@
-import os
 import re
-from pathlib import Path
 
-import yaml
+import frontmatter
 from mkdocs.config import config_options
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.exceptions import PluginError
 from mkdocs.plugins import BasePlugin
 from mkdocs.structure.files import File, Files
-from mkdocs.structure.nav import Navigation
 from mkdocs.structure.pages import Page
-from mkdocs.utils.templates import TemplateContext
 
 from mkdocs_decision_records._markdown_utils import _list, _meta_table
 
@@ -24,6 +20,7 @@ CONFIG_REQUIRED_DECIDERS_COUNT_KEY = "required_deciders_count"
 CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT = 1
 
 DR_TITLE_WITH_NUM = re.compile(r"\d{3,}.*")
+DR_NUM = re.compile(r'(?:[a-zA-Z\-]+)?(\d+)')
 
 DEFAULT_LIFECYCLE_COLORS = {
     "accepted": "#28a745",
@@ -49,7 +46,6 @@ def _require_meta(page: Page, field: str) -> any:
         raise InvalidMetaDataError(page, field, "Required, but not set.")
     return val
 
-
 class DecisionRecordsPlugin(BasePlugin):
     config_scheme = (
         (
@@ -66,7 +62,16 @@ class DecisionRecordsPlugin(BasePlugin):
             config_options.Type(int, default=CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT),
         ),
     )
+    _dr_page_mapping: dict[int|str, File] = {}
 
+    def on_files(self, files: Files, /, *, config: MkDocsConfig) -> Files | None:
+        docs_pages = files.documentation_pages()
+        for doc in docs_pages:
+            parsed_frontmatter = frontmatter.loads(doc.content_string)
+            dr_id = parsed_frontmatter.get("id", None)
+            if dr_id is None:
+                continue
+            self._dr_page_mapping[int(dr_id)] = doc
 
     def on_page_markdown(
         self, markdown: str, page: Page, config: MkDocsConfig, files: Files
@@ -126,11 +131,24 @@ class DecisionRecordsPlugin(BasePlugin):
                     "When setting an ADR to superseded you need to set superseded_by to an ADR id.",
                 )
 
+            superseded_by_id = superseded_by
+            if  match := DR_NUM.match(str(superseded_by)):
+                superseded_by_id = int(match.group(1))
+
+            if isinstance(superseded_by, int):
+                superseded_by = f"{superseded_by:03d}"
+
+            if superseded_by_id not in self._dr_page_mapping:
+                raise InvalidMetaDataError(
+                    page,
+                    "superseded_by",
+                    "Decision records with identifier %s has not been found" % superseded_by,
+                )
 
             meta.append(
                 (
                     "Superseded by",
-                    f"{superseded_by:03d}"
+                    f"<a href='{self._dr_page_mapping[superseded_by_id].url_relative_to(page.file)}'>{superseded_by}</a>"
                 )
             )
 
