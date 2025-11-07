@@ -41,6 +41,25 @@ def test_on_page_markdown():
     assert "Decision 1" in result
 
 
+def test_on_page_markdown_superseded():
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping[2] = MagicMock()
+    page = MagicMock()
+    page.file.src_path = "adr/decision.md"
+    page.meta = {
+        "id": 1,
+        "date": "2021-12-13",
+        "deciders": ["decider1", "decider2"],
+        "status": "superseded",
+        "superseded_by": "2",
+    }
+    page.title = "Decision 1"
+    files = MagicMock()
+    markdown = "This is a decision record."
+    result = plugin.on_page_markdown(markdown, page, {}, files)
+    assert "Decision 1" in result
+
+
 def test_on_files():
     plugin = DecisionRecordsPlugin()
     files = MagicMock()
