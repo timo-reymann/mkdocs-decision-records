@@ -1,3 +1,10 @@
+## [2.1.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.0.0...2.1.0) (2025-11-07)
+
+
+### Features
+
+* Add superseded_by field link support ([#71](https://github.com/timo-reymann/mkdocs-decision-records/issues/71)) ([10def52](https://github.com/timo-reymann/mkdocs-decision-records/commit/10def52f36f07b491b8db49ef2c15dc395c23db7))
+
 ## [2.0.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/1.2.2...2.0.0) (2025-11-06)
 
 
