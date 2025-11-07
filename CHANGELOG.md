@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.0...2.1.1) (2025-11-07)
+
+
+### Bug Fixes
+
+* Fix documentation for status and superseded_by ([f06e9fe](https://github.com/timo-reymann/mkdocs-decision-records/commit/f06e9fef41eca340aad7d3450ff039b6c56e9fc8))
+
 ## [2.1.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.0.0...2.1.0) (2025-11-07)
 
 
