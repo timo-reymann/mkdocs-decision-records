@@ -1,7 +1,7 @@
 ---
 id: 002
 status: superseded
-superseded_by: 003
+superseded_by: ADR-003
 date: 2020-04-01
 deciders:
   - Timo Reymann

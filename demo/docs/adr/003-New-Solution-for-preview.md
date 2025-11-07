@@ -1,6 +1,7 @@
 ---
 id: 003
-status: accepted
+status: superseded
+superseded_by: 002
 date: 2020-04-01
 deciders:
   - Timo Reymann
