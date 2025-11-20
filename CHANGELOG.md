@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.1...2.1.2) (2025-11-20)
+
+
+### Bug Fixes
+
+* [[#78](https://github.com/timo-reymann/mkdocs-decision-records/issues/78)] Check if markdown file is in decision folder for parsing frontmatter for id ([#79](https://github.com/timo-reymann/mkdocs-decision-records/issues/79)) ([3382bc1](https://github.com/timo-reymann/mkdocs-decision-records/commit/3382bc19deef54556c0f9bd1e21b0ed584517422))
+
 ## [2.1.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.0...2.1.1) (2025-11-07)
 
 
