@@ -120,6 +120,35 @@ def test_on_files():
     assert 1 in plugin._dr_page_mapping
 
 
+def test_on_files_ignores_non_decision_folder_files_with_non_integer_ids():
+    """Test that files outside the decisions folder with non-integer IDs are ignored"""
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping = {}  # Clear any shared state
+    files = MagicMock()
+    files.documentation_pages.return_value = [
+        File.generated(
+            MagicMock(),
+            src_uri="adr/adr-001",
+            content=_create_content("# ADR 001 Some decision", {"id": "001"}),
+        ),
+        File.generated(
+            MagicMock(),
+            src_uri="docs/system-model",
+            content=_create_content("# System Model", {"id": "system-model"}),
+        ),
+        File.generated(
+            MagicMock(),
+            src_uri="guides/architecture",
+            content=_create_content("# Architecture", {"id": "not-a-number"}),
+        ),
+    ]
+    # This should not raise a ValueError
+    plugin.on_files(files, config=MagicMock())
+    # Only the file in the adr folder should be processed
+    assert 1 == len(plugin._dr_page_mapping)
+    assert 1 in plugin._dr_page_mapping
+
+
 def test_lifecycles():
     plugin = DecisionRecordsPlugin()
     assert isinstance(plugin.lifecycles, dict)

@@ -66,7 +66,13 @@ class DecisionRecordsPlugin(BasePlugin):
 
     def on_files(self, files: Files, /, *, config: MkDocsConfig) -> Files | None:
         docs_pages = files.documentation_pages()
+        decisions_folder = self.config.get(
+            CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT
+        )
         for doc in docs_pages:
+            # Only process files in the decisions folder
+            if not doc.src_path.startswith(decisions_folder):
+                continue
             parsed_frontmatter = frontmatter.loads(doc.content_string)
             dr_id = parsed_frontmatter.get("id", None)
             if dr_id is None:
