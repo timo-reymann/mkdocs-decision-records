@@ -1,3 +1,9 @@
+## [2.1.3](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.2...2.1.3) (2025-12-06)
+
+### Bug Fixes
+
+* [[#81](https://github.com/timo-reymann/mkdocs-decision-records/issues/81)] Fix for windows ([#82](https://github.com/timo-reymann/mkdocs-decision-records/issues/82)) ([240f9b8](https://github.com/timo-reymann/mkdocs-decision-records/commit/240f9b80f87640ad130f9eaf79787c3c2b8b4c9f))
+
 ## [2.1.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.1...2.1.2) (2025-11-20)
 
 

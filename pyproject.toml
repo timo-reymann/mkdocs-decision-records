@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mkdocs-decision-records"
-version = "2.1.2"
+version = "2.1.3"
 description = "Manage decision records with mkdocs in a customizable and minimal fashion."
 authors = ["Timo Reymann <mail@timo-reymann.de>"]
 readme = "README.md"
