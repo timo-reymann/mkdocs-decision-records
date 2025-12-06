@@ -16,6 +16,15 @@ CONFIG_TICKET_URL_PREFIX = "ticket_url_prefix"
 CONFIG_LIFECYCLE_COLORS_KEY = "lifecycle_stages"
 CONFIG_DECISIONS_FOLDER_DEFAULT = "adr"
 
+
+def _normalize_decisions_folder(folder: str) -> str:
+    """Normalize decisions_folder to use forward slashes and no trailing slash.
+
+    This ensures OS-independent path matching by converting Windows-style
+    backslashes to forward slashes and removing any trailing slashes.
+    """
+    return folder.replace("\\", "/").rstrip("/")
+
 CONFIG_REQUIRED_DECIDERS_COUNT_KEY = "required_deciders_count"
 CONFIG_REQUIRED_DECIDERS_COUNT_DEFAULT = 1
 
@@ -66,12 +75,13 @@ class DecisionRecordsPlugin(BasePlugin):
 
     def on_files(self, files: Files, /, *, config: MkDocsConfig) -> Files | None:
         docs_pages = files.documentation_pages()
-        decisions_folder = self.config.get(
-            CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT
+        decisions_folder = _normalize_decisions_folder(
+            self.config.get(CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT)
         )
         for doc in docs_pages:
             # Only process files in the decisions folder
-            if not doc.src_path.startswith(decisions_folder):
+            # Use src_uri instead of src_path for OS-independent path matching
+            if not doc.src_uri.startswith(decisions_folder):
                 continue
             parsed_frontmatter = frontmatter.loads(doc.content_string)
             dr_id = parsed_frontmatter.get("id", None)
@@ -82,11 +92,11 @@ class DecisionRecordsPlugin(BasePlugin):
     def on_page_markdown(
         self, markdown: str, page: Page, config: MkDocsConfig, files: Files
     ):
-        if not page.file.src_path.startswith(
-            self.config.get(
-                CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT
-            )
-        ):
+        # Use src_uri instead of src_path for OS-independent path matching
+        decisions_folder = _normalize_decisions_folder(
+            self.config.get(CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT)
+        )
+        if not page.file.src_uri.startswith(decisions_folder):
             return markdown
 
         title = page.meta.get("title", None) or page.title
