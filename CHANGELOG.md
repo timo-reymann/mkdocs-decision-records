@@ -1,3 +1,9 @@
+## [2.2.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.3...2.2.0) (2026-04-03)
+
+### Features
+
+* add ProperDocs support and MkDocs version pinning ([ec26b5f](https://github.com/timo-reymann/mkdocs-decision-records/commit/ec26b5ffe4d8b88170e98417347daee618fcb07b))
+
 ## [2.1.3](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.2...2.1.3) (2025-12-06)
 
 ### Bug Fixes
