@@ -1,4 +1,5 @@
 import re
+import os
 
 import frontmatter
 from mkdocs.config import config_options
@@ -9,6 +10,14 @@ from mkdocs.structure.files import File, Files
 from mkdocs.structure.pages import Page
 
 from mkdocs_decision_records._markdown_utils import _list, _meta_table
+
+# ProperDocs replacement warning
+try:
+    import properdocs.replacement_warning
+    properdocs.replacement_warning.setup()
+except ImportError:
+    # properdocs not installed, skip warning
+    pass
 
 CONFIG_DECISIONS_FOLDER_KEY = "decisions_folder"
 CONFIG_TICKET_URL_PREFIX = "ticket_url_prefix"
