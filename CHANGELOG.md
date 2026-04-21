@@ -1,3 +1,9 @@
+## [2.3.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.2.0...2.3.0) (2026-04-21)
+
+### Features
+
+* [[#98](https://github.com/timo-reymann/mkdocs-decision-records/issues/98)] Add configurable id length and configurable length ([0cdfc98](https://github.com/timo-reymann/mkdocs-decision-records/commit/0cdfc98d24c820812568ed32fab59e557241bd30))
+
 ## [2.2.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.1.3...2.2.0) (2026-04-03)
 
 ### Features
