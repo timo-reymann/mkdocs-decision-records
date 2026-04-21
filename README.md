@@ -40,6 +40,11 @@ mkdocs-decision-records
        ticket_url_prefix: https://ticket.example.com/
        # Configure amount of required deciders
        required_deciders_count: 1
+       # Configure the length of decision IDs (default: 3)
+       decision_id_length: 3
+       # Enable validation that IDs match the configured length (default: false)
+       # When enabled, IDs that don't match the configured length will be rejected
+       validate_id_length: false
        # Configure available stages and the badge colors
        lifecycle_stages:
          {status}: {color}

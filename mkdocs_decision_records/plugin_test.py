@@ -40,6 +40,7 @@ def test_on_page_markdown():
     result = plugin.on_page_markdown(markdown, page, {}, files)
     assert "Decision 1" in result
 
+
 def test_on_page_markdown_superseded_padded():
     plugin = DecisionRecordsPlugin()
     plugin._dr_page_mapping[2] = MagicMock()
@@ -57,6 +58,7 @@ def test_on_page_markdown_superseded_padded():
     markdown = "This is a decision record."
     result = plugin.on_page_markdown(markdown, page, {}, files)
     assert "Decision 1" in result
+
 
 def test_on_page_markdown_superseded_int():
     plugin = DecisionRecordsPlugin()
@@ -76,6 +78,7 @@ def test_on_page_markdown_superseded_int():
     result = plugin.on_page_markdown(markdown, page, {}, files)
     assert "Decision 1" in result
 
+
 def test_on_page_markdown_superseded_invalid():
     plugin = DecisionRecordsPlugin()
     plugin._dr_page_mapping[2] = MagicMock()
@@ -93,6 +96,7 @@ def test_on_page_markdown_superseded_invalid():
     markdown = "This is a decision record."
     with pytest.raises(InvalidMetaDataError):
         plugin.on_page_markdown(markdown, page, {}, files)
+
 
 def test_on_files():
     plugin = DecisionRecordsPlugin()
@@ -228,6 +232,7 @@ def test_create_status_badge(status_mapping, status, expected_result):
         with pytest.raises(InvalidMetaDataError):
             plugin._create_status_badge(page)
 
+
 def test_on_files_with_nested_decisions_folder():
     """Test that on_files works with nested decisions_folder like 'internal/adr'"""
     from mkdocs_decision_records.plugin import CONFIG_DECISIONS_FOLDER_KEY
@@ -326,6 +331,205 @@ def test_decisions_folder_with_trailing_slash_is_normalized():
             MagicMock(),
             src_uri="adr/001-decision.md",
             content=_create_content("# ADR 001", {"id": "001"}),
+        ),
+    ]
+    plugin.on_files(files, config=MagicMock())
+    assert 1 == len(plugin._dr_page_mapping)
+
+
+def test_id_length_default():
+    """Test that id_length defaults to 3"""
+    from mkdocs_decision_records.plugin import CONFIG_DECISION_ID_LENGTH_DEFAULT
+
+    plugin = DecisionRecordsPlugin()
+    assert plugin.id_length == CONFIG_DECISION_ID_LENGTH_DEFAULT
+    assert plugin.id_length == 3
+
+
+def test_id_length_custom():
+    """Test that id_length can be configured to a custom value"""
+    from mkdocs_decision_records.plugin import CONFIG_DECISION_ID_LENGTH_KEY
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    assert plugin.id_length == 4
+
+
+def test_validate_id_length_default():
+    """Test that validate_id_length defaults to False"""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_DEFAULT,
+    )
+
+    plugin = DecisionRecordsPlugin()
+    assert plugin.validate_id_length == CONFIG_DECISION_ID_LENGTH_VALIDATE_DEFAULT
+    assert plugin.validate_id_length is False
+
+
+def test_validate_id_length_custom():
+    """Test that validate_id_length can be configured"""
+    from mkdocs_decision_records.plugin import CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
+    assert plugin.validate_id_length is True
+
+
+def test_id_format_with_custom_length():
+    """Test that _id_format uses the configured length"""
+    from mkdocs_decision_records.plugin import CONFIG_DECISION_ID_LENGTH_KEY
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    assert plugin._id_format(1) == "0001"
+    assert plugin._id_format(42) == "0042"
+    assert plugin._id_format(1234) == "1234"
+
+
+def test_on_page_markdown_with_4_digit_id_length():
+    """Test that on_page_markdown formats IDs with 4 digits when configured"""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_KEY,
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
+    )
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = False
+    page = MagicMock()
+    page.file.src_uri = "adr/decision.md"
+    page.meta = {
+        "id": 1,
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page.title = "Decision 1"
+    files = MagicMock()
+    files.documentation_pages.return_value = []
+    markdown = "This is a decision record."
+    result = plugin.on_page_markdown(markdown, page, {}, files)
+    assert "0001 - Decision 1" in result
+
+
+def test_on_page_markdown_with_validation_enabled():
+    """Test that validation triggers when validate_id_length is enabled"""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_KEY,
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
+    )
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
+    page = MagicMock()
+    page.file.src_uri = "adr/decision.md"
+    page.meta = {
+        "id": 1,
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page.title = "Decision 1"
+    files = MagicMock()
+    markdown = "This is a decision record."
+    with pytest.raises(InvalidMetaDataError) as exc_info:
+        plugin.on_page_markdown(markdown, page, {}, files)
+    assert "ID must be 4 digits long" in str(exc_info.value)
+
+
+def test_on_page_markdown_with_validation_enabled_valid_id():
+    """Test that valid length IDs pass validation when validate_id_length is enabled"""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_KEY,
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
+    )
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
+    page = MagicMock()
+    page.file.src_uri = "adr/decision.md"
+    page.meta = {
+        "id": "0001",
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page.title = "0001 - My Decision"
+    files = MagicMock()
+    files.documentation_pages.return_value = []
+    markdown = "This is a decision record."
+    result = plugin.on_page_markdown(markdown, page, {}, files)
+    assert "0001 - My Decision" in result
+
+
+def test_on_page_markdown_template_with_custom_id_length():
+    """Test that template title uses the configured ID length"""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_KEY,
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
+    )
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = False
+    page = MagicMock()
+    page.file.src_uri = "adr/0001-template.md"
+    page.meta = {
+        "id": 0,
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "proposed",
+    }
+    page.title = "Template"
+    files = MagicMock()
+    markdown = "This is a template."
+    result = plugin.on_page_markdown(markdown, page, {}, files)
+    assert page.title == "0000 - Template"
+
+
+def test_on_files_with_validation_enabled_invalid_id():
+    """Test that on_files raises error with validation enabled for invalid length IDs"""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_KEY,
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
+    )
+    from mkdocs.exceptions import PluginError
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
+    files = MagicMock()
+    files.documentation_pages.return_value = [
+        File.generated(
+            MagicMock(),
+            src_uri="adr/001-decision.md",
+            content=_create_content("# ADR 001", {"id": "001"}),
+        ),
+    ]
+    with pytest.raises(PluginError) as exc_info:
+        plugin.on_files(files, config=MagicMock())
+    assert "must be 4 digits long" in str(exc_info.value)
+
+
+def test_on_files_with_validation_enabled_valid_id():
+    """Test that on_files accepts valid length IDs with validation enabled"""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_KEY,
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
+    )
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
+    plugin._dr_page_mapping = {}
+    files = MagicMock()
+    files.documentation_pages.return_value = [
+        File.generated(
+            MagicMock(),
+            src_uri="adr/0001-decision.md",
+            content=_create_content("# ADR 0001", {"id": "0001"}),
         ),
     ]
     plugin.on_files(files, config=MagicMock())
