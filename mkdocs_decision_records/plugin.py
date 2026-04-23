@@ -260,8 +260,9 @@ class DecisionRecordsPlugin(BasePlugin):
         return f"{id_int:0{self.id_length}d}"
 
     def _id_matches_length(self, id_val: int | str) -> bool:
-        id_str = str(id_val)
-        return len(id_str) == self.id_length
+        if isinstance(id_val, int):
+            return len(str(id_val)) <= self.id_length
+        return len(id_val) == self.id_length
 
     def _ensure_page_is_unique(self, dr_id, files, page):
         same_id_pages = [

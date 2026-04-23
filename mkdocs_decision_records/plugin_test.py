@@ -425,12 +425,12 @@ def test_on_page_markdown_with_validation_enabled():
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
     page.meta = {
-        "id": 1,
+        "id": 12345,
         "date": "2021-12-13",
         "deciders": ["decider1"],
         "status": "accepted",
     }
-    page.title = "Decision 1"
+    page.title = "Decision 12345"
     files = MagicMock()
     markdown = "This is a decision record."
     with pytest.raises(InvalidMetaDataError) as exc_info:
@@ -452,6 +452,32 @@ def test_on_page_markdown_with_validation_enabled_valid_id():
     page.file.src_uri = "adr/decision.md"
     page.meta = {
         "id": "0001",
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page.title = "0001 - My Decision"
+    files = MagicMock()
+    files.documentation_pages.return_value = []
+    markdown = "This is a decision record."
+    result = plugin.on_page_markdown(markdown, page, {}, files)
+    assert "0001 - My Decision" in result
+
+
+def test_on_page_markdown_with_validation_enabled_int_id_padded():
+    """YAML parses `id: 0001` as int 1 — validation should accept it when it fits the configured length."""
+    from mkdocs_decision_records.plugin import (
+        CONFIG_DECISION_ID_LENGTH_KEY,
+        CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
+    )
+
+    plugin = DecisionRecordsPlugin()
+    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
+    plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
+    page = MagicMock()
+    page.file.src_uri = "adr/decision.md"
+    page.meta = {
+        "id": 1,
         "date": "2021-12-13",
         "deciders": ["decider1"],
         "status": "accepted",
