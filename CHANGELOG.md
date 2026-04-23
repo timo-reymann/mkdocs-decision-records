@@ -1,3 +1,9 @@
+## [2.3.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.3.0...2.3.1) (2026-04-23)
+
+### Bug Fixes
+
+* [[#99](https://github.com/timo-reymann/mkdocs-decision-records/issues/99)] accept zero-padded integer ids in length validation ([9871601](https://github.com/timo-reymann/mkdocs-decision-records/commit/98716013191e813676a6cbba7e7ada10a8545d48))
+
 ## [2.3.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.2.0...2.3.0) (2026-04-21)
 
 ### Features
