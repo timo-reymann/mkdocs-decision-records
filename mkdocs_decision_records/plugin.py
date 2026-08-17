@@ -111,6 +111,8 @@ class DecisionRecordsPlugin(BasePlugin):
             # Use src_uri instead of src_path for OS-independent path matching
             if not doc.src_uri.startswith(decisions_folder):
                 continue
+            if self._is_section_index(doc.src_uri):
+                continue
             parsed_frontmatter = frontmatter.loads(doc.content_string)
             dr_id = parsed_frontmatter.get("id", None)
             if dr_id is None:
@@ -132,6 +134,12 @@ class DecisionRecordsPlugin(BasePlugin):
             )
         )
         if not page.file.src_uri.startswith(decisions_folder):
+            return markdown
+
+        # index.md is a section overview page (e.g. an awesome-pages folder
+        # landing page), not a decision record — it must not be matched by
+        # the `id: 0` template sentinel below.
+        if self._is_section_index(page.file.src_uri):
             return markdown
 
         title = page.meta.get("title", None) or page.title
@@ -254,6 +262,10 @@ class DecisionRecordsPlugin(BasePlugin):
             CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
             CONFIG_DECISION_ID_LENGTH_VALIDATE_DEFAULT,
         )
+
+    @staticmethod
+    def _is_section_index(src_uri: str) -> bool:
+        return os.path.basename(src_uri).lower() == "index.md"
 
     def _id_format(self, id_val: int | str) -> str:
         id_int = int(id_val)
