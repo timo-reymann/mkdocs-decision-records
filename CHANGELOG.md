@@ -1,3 +1,9 @@
+## [2.3.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.3.1...2.3.2) (2026-08-17)
+
+### Bug Fixes
+
+* exempt index.md pages from decision-record id/title processing ([#114](https://github.com/timo-reymann/mkdocs-decision-records/issues/114)) ([691a4f6](https://github.com/timo-reymann/mkdocs-decision-records/commit/691a4f6efce73d36088f645d6441b47924c3cc59))
+
 ## [2.3.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.3.0...2.3.1) (2026-04-23)
 
 ### Bug Fixes
