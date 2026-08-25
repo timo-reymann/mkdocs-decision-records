@@ -1,6 +1,7 @@
-import datetime
+import json
 import re
 import os
+from typing import Any, Generator
 
 import frontmatter
 from mkdocs.config import config_options
@@ -10,7 +11,14 @@ from mkdocs.plugins import BasePlugin
 from mkdocs.structure.files import File, Files
 from mkdocs.structure.pages import Page
 
+from mkdocs_decision_records._html_parser import BasicTextContentParser
 from mkdocs_decision_records._markdown_utils import _list, _meta_table
+from mkdocs_decision_records._model_meta import MetaModel
+from mkdocs_decision_records._model_record import (
+    NormalizedDecisionRecord,
+    RawDecisionRecord,
+    format_decision_record_display_id,
+)
 
 # ProperDocs replacement warning
 try:
@@ -65,11 +73,22 @@ class InvalidMetaDataError(PluginError):
         )
 
 
-def _require_meta(page: Page, field: str) -> any:
-    val = page.meta.get(field, None)
-    if val is None:
-        raise InvalidMetaDataError(page, field, "Required, but not set.")
-    return val
+class InvalidMetaDataExcpetion(PluginError):
+    def __init__(self, page: Page, errors: list[InvalidMetaDataError]):
+        errors_lines = "\n".join(str(e) for e in errors)
+        src_path = getattr(page, "src_path", None) or getattr(getattr(page, "file", None), "src_path", "unknown") if page else "unknown"
+        self.message = f"Invalid metadata for {src_path}: {errors_lines}"
+
+
+def _ensure_page_is_unique(dr_id, files, page):
+    same_id_pages = [
+        f.src_path
+        for f in files.documentation_pages()
+        if f.page.meta and f.page.meta.get("id", None) == dr_id
+    ]
+    if len(same_id_pages) > 0:
+        pages = ", ".join(same_id_pages)
+        raise InvalidMetaDataError(page, "id", f"Uses same id as {pages}")
 
 
 class DecisionRecordsPlugin(BasePlugin):
@@ -98,7 +117,61 @@ class DecisionRecordsPlugin(BasePlugin):
             ),
         ),
     )
-    _dr_page_mapping: dict[int | str, File] = {}
+    _dr_page_mapping: dict[str, NormalizedDecisionRecord] = {}
+
+    def _parse_decision_record_page(
+        self, file: File, meta: frontmatter.Post | None = None
+    ) -> NormalizedDecisionRecord:
+        raw = RawDecisionRecord.from_file(file, meta)
+        dr, errors = raw.validate(
+            validate_id_len=self.validate_id_length,
+            padded_id_len=self.id_length,
+            required_deciders_count=self.required_deciders_count,
+        )
+        if errors:
+            raise InvalidMetaDataExcpetion(file.page, errors)
+        assert dr is not None
+        return dr
+
+    def _generate_index(self) -> Generator[dict[str, str | list], Any, None]:
+        for dr in self._dr_page_mapping.values():
+            if dr.is_template():
+                continue
+
+            dr_index = {
+                "id": dr.id,
+                "date": dr.date.isoformat(),
+                "title": dr.title,
+                "status": dr.status,
+            }
+
+            if (content := dr.file.page.content) is not None:
+                html_parser = BasicTextContentParser()
+                html_parser.feed(content)
+                html_parser.close()
+
+                content_sections = []
+                for section in html_parser.data:
+                    if not section.is_excluded():
+                        content_sections.append(
+                            {
+                                "title": "".join(section.title).strip(),
+                                "text": "\n".join(section.text).strip(),
+                            }
+                        )
+                dr_index["toc"] = dr.file.page.toc
+                dr_index["sections"] = content_sections
+
+            if dr.status == "superseded" and dr.superseded_by:
+                dr_index["superseded_by"] = dr.superseded_by
+
+            yield dr_index
+
+    def on_post_build(self, *, config: MkDocsConfig) -> None:
+        dr_index = json.dumps(list(self._generate_index()), default=str)
+        index_file = os.path.join(config.site_dir, "decision_index.json")
+        with open(index_file, "w") as f:
+            f.write(dr_index)
 
     def on_files(self, files: Files, /, *, config: MkDocsConfig) -> Files | None:
         docs_pages = files.documentation_pages()
@@ -112,18 +185,13 @@ class DecisionRecordsPlugin(BasePlugin):
             # Use src_uri instead of src_path for OS-independent path matching
             if not doc.src_uri.startswith(decisions_folder):
                 continue
+
             if self._is_section_index(doc.src_uri):
                 continue
+
             parsed_frontmatter = frontmatter.loads(doc.content_string)
-            dr_id = parsed_frontmatter.get("id", None)
-            if dr_id is None:
-                continue
-            dr_id_int = int(dr_id)
-            if self.validate_id_length and not self._id_matches_length(dr_id):
-                raise PluginError(
-                    f"ID in {doc.src_uri} must be {self.id_length} digits long, got '{dr_id}'"
-                )
-            self._dr_page_mapping[dr_id_int] = doc
+            dr = self._parse_decision_record_page(doc, parsed_frontmatter)
+            self._dr_page_mapping[dr.id] = dr
 
     def on_page_markdown(
         self, markdown: str, page: Page, config: MkDocsConfig, files: Files
@@ -143,53 +211,41 @@ class DecisionRecordsPlugin(BasePlugin):
         if self._is_section_index(page.file.src_uri):
             return markdown
 
-        title = page.meta.get("title", None) or page.title
-        dr_id = _require_meta(page, "id")
+        dr = self._parse_decision_record_page(page.file)
 
-        if self.validate_id_length and not self._id_matches_length(dr_id):
-            raise InvalidMetaDataError(
-                page,
-                "id",
-                f"ID must be {self.id_length} digits long, got '{dr_id}'",
-            )
+        # set page title
+        page.title = dr.title
 
-        if dr_id == 0:
-            page.title = f"{self._id_format(0)} - Template"
+        if dr.is_template():
             return markdown
 
-        self._ensure_page_is_unique(dr_id, files, page)
+        _ensure_page_is_unique(dr.id, files, page)
 
-        meta = [
-            ("Status", self._create_status_badge(page)),
-            ("Date", _require_meta(page, "date")),
-        ]
+        meta_model = MetaModel()
+        meta_model.add(
+            key="Status",
+            value=self._create_status_badge(dr),
+        )
+        meta_model.add(
+            key="Date",
+            value=dr.date,
+        )
 
-        deciders = page.meta.get("deciders", [])
-        if len(deciders) < self.required_deciders_count:
-            raise InvalidMetaDataError(
-                page,
-                "deciders",
-                f"At least {self.required_deciders_count} deciders are required for a decision",
-            )
-        elif len(deciders) > 0:
-            meta.append(
-                (
-                    "Deciders" if len(deciders) > 1 else "Decider",
-                    "\n".join(_list(deciders)) if len(deciders) > 1 else deciders[0],
-                )
+        if len(dr.deciders) > 0:
+            meta_model.add(
+                key="Deciders" if dr.has_multiple_deciders else "Decider",
+                value="\n".join(_list(dr.deciders))
+                if len(dr.deciders) > 1
+                else dr.deciders[0],
             )
 
-        ticket = page.meta.get("ticket", None)
-        if ticket is not None:
-            meta.append(
-                (
-                    "Ticket",
-                    self._ticket_text(ticket),
-                )
+        if dr.ticket is not None:
+            meta_model.add(
+                key="Ticket",
+                value=self._ticket_text(dr.ticket),
             )
 
-        status = _require_meta(page, "status")
-        if status == "superseded":
+        if dr.status == "superseded":
             superseded_by = page.meta.get("superseded_by", None)
             if superseded_by is None:
                 raise InvalidMetaDataError(
@@ -202,19 +258,12 @@ class DecisionRecordsPlugin(BasePlugin):
             if match := DR_NUM.match(str(superseded_by)):
                 superseded_by_id = int(match.group(1))
 
-            if self.validate_id_length and not self._id_matches_length(
-                superseded_by_id
-            ):
-                raise InvalidMetaDataError(
-                    page,
-                    "superseded_by",
-                    f"ID must be {self.id_length} digits long, got '{superseded_by_id}'",
+            if (
+                format_decision_record_display_id(
+                    superseded_by_id, padded_len=self.id_length
                 )
-
-            if isinstance(superseded_by, int):
-                superseded_by = self._id_format(superseded_by)
-
-            if superseded_by_id not in self._dr_page_mapping:
+                not in self._dr_page_mapping
+            ):
                 raise InvalidMetaDataError(
                     page,
                     "superseded_by",
@@ -222,25 +271,14 @@ class DecisionRecordsPlugin(BasePlugin):
                     % superseded_by,
                 )
 
-            meta.append(
-                (
-                    "Superseded by",
-                    f"<a href='{self._dr_page_mapping[superseded_by_id].url_relative_to(page.file)}'>{superseded_by}</a>",
-                )
+            meta_model.add(
+                key="Superseded by",
+                value=f"<a href='{self._dr_page_mapping[format_decision_record_display_id(superseded_by_id, padded_len=self.id_length)].file.url_relative_to(page.file)}'>{superseded_by}</a>",
             )
 
-        meta_info = "\n".join(_meta_table(meta))
-        if title:
-            if self.title_regex.fullmatch(title):
-                header = title
-            else:
-                # Filename-derived titles (no title: meta) can carry a bare ID
-                # prefix with no " - ", which title_regex above won't catch.
-                title = self._bare_id_prefix(dr_id).sub("", title, count=1)
-                header = f"{self._id_format(dr_id)} - {title}"
-            page.title = header
+        meta_info = "\n".join(_meta_table(meta_model.get_all()))
 
-        return f"{header}\n===\n{meta_info}\n{markdown}"
+        return f"{dr.title}\n===\n{meta_info}\n{markdown}"
 
     @property
     def lifecycles(self) -> dict[str, str]:
@@ -263,11 +301,6 @@ class DecisionRecordsPlugin(BasePlugin):
         )
 
     @property
-    def title_regex(self):
-        decimal_range = "{1," + str(self.id_length) + "}"
-        return re.compile(rf"\d{decimal_range} - .*")
-
-    @property
     def validate_id_length(self):
         return self.config.get(
             CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
@@ -278,42 +311,14 @@ class DecisionRecordsPlugin(BasePlugin):
     def _is_section_index(src_uri: str) -> bool:
         return os.path.basename(src_uri).lower() == "index.md"
 
-    def _id_format(self, id_val: int | str) -> str:
-        id_int = int(id_val)
-        return f"{id_int:0{self.id_length}d}"
-
-    @staticmethod
-    def _bare_id_prefix(dr_id: int | str) -> re.Pattern:
-        return re.compile(rf"^0*{int(dr_id)}\s+")
-
-    def _id_matches_length(self, id_val: int | str) -> bool:
-        if isinstance(id_val, int):
-            return len(str(id_val)) <= self.id_length
-        return len(id_val) == self.id_length
-
-    def _ensure_page_is_unique(self, dr_id, files, page):
-        same_id_pages = [
-            p.src_path
-            for p in files.documentation_pages()
-            if p is not page.file
-            and p.page
-            and p.page.meta
-            and p.page.meta.get("id", None) == dr_id
-        ]
-        if len(same_id_pages) > 0:
-            pages = ", ".join(same_id_pages)
-            raise InvalidMetaDataError(page, "id", f"Uses same id as {pages}")
-
-    def _create_status_badge(self, page):
-        status = _require_meta(page, "status")
-
-        status_color = self.lifecycles.get(status, None)
+    def _create_status_badge(self, dr: NormalizedDecisionRecord):
+        status_color = self.lifecycles.get(dr.status, None)
         if status_color is None:
-            raise InvalidMetaDataError(page, "status", f"Invalid status {status}")
+            raise InvalidMetaDataError(dr.file.page, "status", f"Invalid status {dr.status}")
 
         return (
             f"<span style='color: white;background:{status_color};padding:.4em;border-radius:8px;font-size:100%;'>"
-            f"{status}"
+            f"{dr.status}"
             f"</span>"
         )
 
