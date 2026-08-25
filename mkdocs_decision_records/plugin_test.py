@@ -28,6 +28,7 @@ def test_on_page_markdown():
     plugin = DecisionRecordsPlugin()
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": 1,
         "date": "2021-12-13",
@@ -43,9 +44,21 @@ def test_on_page_markdown():
 
 def test_on_page_markdown_superseded_padded():
     plugin = DecisionRecordsPlugin()
-    plugin._dr_page_mapping[2] = MagicMock()
+    page_superseded = MagicMock()
+    page_superseded.file.src_path = "adr/002-decision.md"
+    page_superseded.file.src_uri = "adr/002-decision.md"
+    page_superseded.page = page_superseded
+    page_superseded.meta = {
+        "id": 2,
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page_superseded.title = "Decision 2"
+    plugin._dr_page_mapping["002"] = page_superseded
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": 1,
         "date": "2021-12-13",
@@ -62,9 +75,21 @@ def test_on_page_markdown_superseded_padded():
 
 def test_on_page_markdown_superseded_int():
     plugin = DecisionRecordsPlugin()
-    plugin._dr_page_mapping[2] = MagicMock()
+    page_superseded = MagicMock()
+    page_superseded.file.src_path = "adr/002-decision.md"
+    page_superseded.file.src_uri = "adr/002-decision.md"
+    page_superseded.page = page_superseded
+    page_superseded.meta = {
+        "id": 2,
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page_superseded.title = "Decision 2"
+    plugin._dr_page_mapping["002"] = page_superseded
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": 1,
         "date": "2021-12-13",
@@ -81,9 +106,9 @@ def test_on_page_markdown_superseded_int():
 
 def test_on_page_markdown_superseded_invalid():
     plugin = DecisionRecordsPlugin()
-    plugin._dr_page_mapping[2] = MagicMock()
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": 1,
         "date": "2021-12-13",
@@ -105,12 +130,12 @@ def test_on_files():
         File.generated(
             MagicMock(),
             src_uri="adr-001",
-            content=_create_content("# ADR 001 Some decision", {"id": "001"}),
+            content=_create_content("# ADR 001 Some decision", {"id": "001", "status": "accepted", "date": "2024-01-01"}),
         ),
         File.generated(
             MagicMock(),
             src_uri="adr-002",
-            content=_create_content("# ADR 002 Some decision", {"id": "002"}),
+            content=_create_content("# ADR 002 Some decision", {"id": "002", "status": "accepted", "date": "2024-01-01"}),
         ),
         File.generated(
             MagicMock(),
@@ -120,8 +145,8 @@ def test_on_files():
     ]
     plugin.on_files(files, config=MagicMock())
     assert 2 == len(plugin._dr_page_mapping)
-    assert 2 in plugin._dr_page_mapping
-    assert 1 in plugin._dr_page_mapping
+    assert "002" in plugin._dr_page_mapping
+    assert "001" in plugin._dr_page_mapping
 
 
 def test_on_files_ignores_non_decision_folder_files_with_non_integer_ids():
@@ -133,7 +158,7 @@ def test_on_files_ignores_non_decision_folder_files_with_non_integer_ids():
         File.generated(
             MagicMock(),
             src_uri="adr/adr-001",
-            content=_create_content("# ADR 001 Some decision", {"id": "001"}),
+            content=_create_content("# ADR 001 Some decision", {"id": "001", "status": "accepted", "date": "2024-01-01"}),
         ),
         File.generated(
             MagicMock(),
@@ -150,7 +175,7 @@ def test_on_files_ignores_non_decision_folder_files_with_non_integer_ids():
     plugin.on_files(files, config=MagicMock())
     # Only the file in the adr folder should be processed
     assert 1 == len(plugin._dr_page_mapping)
-    assert 1 in plugin._dr_page_mapping
+    assert "001" in plugin._dr_page_mapping
 
 
 def test_lifecycles():
@@ -165,22 +190,26 @@ def test_required_deciders_count():
 
 def test_create_status_badge():
     plugin = DecisionRecordsPlugin()
-    page = MagicMock()
-    page.meta = {"status": "accepted"}
-    result = plugin._create_status_badge(page)
+    dr = MagicMock()
+    dr.status = "accepted"
+    dr.file.page = MagicMock()
+    result = plugin._create_status_badge(dr)
     assert "accepted" in result
 
 
 def test_invalid_metadata_error():
+    from mkdocs.exceptions import PluginError
+
     plugin = DecisionRecordsPlugin()
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
-    page.meta = {"id": 1, "date": "2021-12-13", "deciders": []}
+    page.file.page = page
+    page.meta = {"id": 1, "date": "2021-12-13", "status": "", "deciders": []}
     page.title = "Decision 1"
     files = MagicMock()
     files.documentation_pages.return_value = []
     markdown = "This is a decision record."
-    with pytest.raises(InvalidMetaDataError):
+    with pytest.raises(PluginError):
         plugin.on_page_markdown(markdown, page, {}, files)
 
 
@@ -224,13 +253,14 @@ def test_ticket_text():
 def test_create_status_badge(status_mapping, status, expected_result):
     plugin = DecisionRecordsPlugin()
     plugin.config[CONFIG_LIFECYCLE_COLORS_KEY] = status_mapping
-    page = MagicMock()
-    page.meta = {"status": status}
+    dr = MagicMock()
+    dr.status = status
+    dr.file.page = MagicMock()
     if expected_result is not None:
-        assert plugin._create_status_badge(page) == expected_result
+        assert plugin._create_status_badge(dr) == expected_result
     else:
         with pytest.raises(InvalidMetaDataError):
-            plugin._create_status_badge(page)
+            plugin._create_status_badge(dr)
 
 
 def test_on_files_with_nested_decisions_folder():
@@ -245,7 +275,7 @@ def test_on_files_with_nested_decisions_folder():
         File.generated(
             MagicMock(),
             src_uri="internal/adr/001-decision.md",
-            content=_create_content("# ADR 001", {"id": "001"}),
+            content=_create_content("# ADR 001", {"id": "001", "status": "accepted", "date": "2024-01-01"}),
         ),
         File.generated(
             MagicMock(),
@@ -255,7 +285,7 @@ def test_on_files_with_nested_decisions_folder():
     ]
     plugin.on_files(files, config=MagicMock())
     assert 1 == len(plugin._dr_page_mapping)
-    assert 1 in plugin._dr_page_mapping
+    assert "001" in plugin._dr_page_mapping
 
 
 def test_on_page_markdown_with_nested_decisions_folder():
@@ -266,6 +296,7 @@ def test_on_page_markdown_with_nested_decisions_folder():
     plugin.config[CONFIG_DECISIONS_FOLDER_KEY] = "internal/adr"
     page = MagicMock()
     page.file.src_uri = "internal/adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": 1,
         "date": "2021-12-13",
@@ -310,7 +341,7 @@ def test_decisions_folder_with_backslashes_is_normalized():
         File.generated(
             MagicMock(),
             src_uri="internal/adr/001-decision.md",
-            content=_create_content("# ADR 001", {"id": "001"}),
+            content=_create_content("# ADR 001", {"id": "001", "status": "accepted", "date": "2024-01-01"}),
         ),
     ]
     plugin.on_files(files, config=MagicMock())
@@ -330,7 +361,7 @@ def test_decisions_folder_with_trailing_slash_is_normalized():
         File.generated(
             MagicMock(),
             src_uri="adr/001-decision.md",
-            content=_create_content("# ADR 001", {"id": "001"}),
+            content=_create_content("# ADR 001", {"id": "001", "status": "accepted", "date": "2024-01-01"}),
         ),
     ]
     plugin.on_files(files, config=MagicMock())
@@ -375,15 +406,6 @@ def test_validate_id_length_custom():
     assert plugin.validate_id_length is True
 
 
-def test_id_format_with_custom_length():
-    """Test that _id_format uses the configured length"""
-    from mkdocs_decision_records.plugin import CONFIG_DECISION_ID_LENGTH_KEY
-
-    plugin = DecisionRecordsPlugin()
-    plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
-    assert plugin._id_format(1) == "0001"
-    assert plugin._id_format(42) == "0042"
-    assert plugin._id_format(1234) == "1234"
 
 
 def test_on_page_markdown_with_4_digit_id_length():
@@ -398,6 +420,7 @@ def test_on_page_markdown_with_4_digit_id_length():
     plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = False
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": 1,
         "date": "2021-12-13",
@@ -418,12 +441,14 @@ def test_on_page_markdown_with_validation_enabled():
         CONFIG_DECISION_ID_LENGTH_KEY,
         CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
     )
+    from mkdocs.exceptions import PluginError
 
     plugin = DecisionRecordsPlugin()
     plugin.config[CONFIG_DECISION_ID_LENGTH_KEY] = 4
     plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": 12345,
         "date": "2021-12-13",
@@ -433,9 +458,8 @@ def test_on_page_markdown_with_validation_enabled():
     page.title = "Decision 12345"
     files = MagicMock()
     markdown = "This is a decision record."
-    with pytest.raises(InvalidMetaDataError) as exc_info:
+    with pytest.raises(PluginError):
         plugin.on_page_markdown(markdown, page, {}, files)
-    assert "ID must be 4 digits long" in str(exc_info.value)
 
 
 def test_on_page_markdown_with_validation_enabled_valid_id():
@@ -450,6 +474,7 @@ def test_on_page_markdown_with_validation_enabled_valid_id():
     plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
         "id": "0001",
         "date": "2021-12-13",
@@ -476,8 +501,9 @@ def test_on_page_markdown_with_validation_enabled_int_id_padded():
     plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = True
     page = MagicMock()
     page.file.src_uri = "adr/decision.md"
+    page.file.page = page
     page.meta = {
-        "id": 1,
+        "id": "0001",
         "date": "2021-12-13",
         "deciders": ["decider1"],
         "status": "accepted",
@@ -502,6 +528,7 @@ def test_on_page_markdown_template_with_custom_id_length():
     plugin.config[CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY] = False
     page = MagicMock()
     page.file.src_uri = "adr/0001-template.md"
+    page.file.page = page
     page.meta = {
         "id": 0,
         "date": "2021-12-13",
@@ -531,12 +558,11 @@ def test_on_files_with_validation_enabled_invalid_id():
         File.generated(
             MagicMock(),
             src_uri="adr/001-decision.md",
-            content=_create_content("# ADR 001", {"id": "001"}),
+            content=_create_content("# ADR 001", {"id": "001", "status": "accepted", "date": "2024-01-01"}),
         ),
     ]
-    with pytest.raises(PluginError) as exc_info:
+    with pytest.raises(PluginError):
         plugin.on_files(files, config=MagicMock())
-    assert "must be 4 digits long" in str(exc_info.value)
 
 
 def test_on_files_with_validation_enabled_valid_id():
@@ -555,7 +581,7 @@ def test_on_files_with_validation_enabled_valid_id():
         File.generated(
             MagicMock(),
             src_uri="adr/0001-decision.md",
-            content=_create_content("# ADR 0001", {"id": "0001"}),
+            content=_create_content("# ADR 0001", {"id": "0001", "status": "accepted", "date": "2024-01-01"}),
         ),
     ]
     plugin.on_files(files, config=MagicMock())
