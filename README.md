@@ -134,6 +134,32 @@ superseded_by: 123
 <!-- Deprecated ADR -->
 ```
 
+## Generated decision index
+
+On every build, the plugin writes a `decision_index.json` to the root of the built site (e.g. `site/decision_index.json`).
+It contains one entry per decision record (templates excluded), and can be used to build custom search or listing
+features on top of the generated site.
+
+Each entry has the shape:
+
+```json
+{
+  "id": "000",
+  "date": "2024-01-01",
+  "title": "Example decision",
+  "status": "accepted",
+  "toc": "...",
+  "sections": [
+    { "title": "Context and Problem Statement", "text": "..." }
+  ],
+  "superseded_by": "001"
+}
+```
+
+- `toc` is the page's table of contents, as produced by MkDocs
+- `sections` lists the page's headings with their rendered text content
+- `superseded_by` is only present when `status` is `superseded`
+
 ## Motivation
 
 I love ADRs and documenting decisions in general. This plugin makes it a bit easier, enforcing basic meta information
