@@ -41,7 +41,7 @@ dev = [
 [tool.uv.build-backend]
 module-name = ["mkdocs_decision_records"]
 module-root = ""
-source-include = ["LICENSE"]
+source-include = ["LICENSE", "NOTICE"]
 
 [build-system]
 requires = ["uv_build>=0.11.3,<0.12.0"]
