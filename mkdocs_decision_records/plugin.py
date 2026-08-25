@@ -1,3 +1,4 @@
+import datetime
 import re
 import os
 
@@ -229,10 +230,15 @@ class DecisionRecordsPlugin(BasePlugin):
             )
 
         meta_info = "\n".join(_meta_table(meta))
-
-        title_has_id = re.match(rf"\d{{{self.id_length}}},.*", title)
-        header = title if title_has_id else f"{self._id_format(dr_id)} - {title}"
-        page.title = header
+        if title:
+            if self.title_regex.fullmatch(title):
+                header = title
+            else:
+                # Filename-derived titles (no title: meta) can carry a bare ID
+                # prefix with no " - ", which title_regex above won't catch.
+                title = self._bare_id_prefix(dr_id).sub("", title, count=1)
+                header = f"{self._id_format(dr_id)} - {title}"
+            page.title = header
 
         return f"{header}\n===\n{meta_info}\n{markdown}"
 
@@ -257,6 +263,11 @@ class DecisionRecordsPlugin(BasePlugin):
         )
 
     @property
+    def title_regex(self):
+        decimal_range = "{1," + str(self.id_length) + "}"
+        return re.compile(rf"\d{decimal_range} - .*")
+
+    @property
     def validate_id_length(self):
         return self.config.get(
             CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY,
@@ -270,6 +281,10 @@ class DecisionRecordsPlugin(BasePlugin):
     def _id_format(self, id_val: int | str) -> str:
         id_int = int(id_val)
         return f"{id_int:0{self.id_length}d}"
+
+    @staticmethod
+    def _bare_id_prefix(dr_id: int | str) -> re.Pattern:
+        return re.compile(rf"^0*{int(dr_id)}\s+")
 
     def _id_matches_length(self, id_val: int | str) -> bool:
         if isinstance(id_val, int):
