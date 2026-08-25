@@ -1,44 +1,51 @@
-[tool.poetry]
+[project]
 name = "mkdocs-decision-records"
 version = "2.3.2"
 description = "Manage decision records with mkdocs in a customizable and minimal fashion."
-authors = ["Timo Reymann <mail@timo-reymann.de>"]
+authors = [{ name = "Timo Reymann", email = "mail@timo-reymann.de" }]
+requires-python = ">=3.12,<4"
 readme = "README.md"
-packages = [
-    { include = "mkdocs_decision_records" }
-]
-include = [
-    "LICENSE"
-]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Framework :: MkDocs",
     "Topic :: Documentation",
-    "Topic :: Software Development :: Documentation"
+    "Topic :: Software Development :: Documentation",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
-repository = "https://github.com/timo-reymann/mkdocs-decision-records"
+dependencies = [
+    "mkdocs>=1.4.0,<=1.6.1",
+    "properdocs>=1.6.7",
+    "python-frontmatter>=1.1.0,<2",
+]
 
-[tool.poetry.urls]
+[project.urls]
+Repository = "https://github.com/timo-reymann/mkdocs-decision-records"
 "Bug Tracker" = "https://github.com/timo-reymann/mkdocs-decision-records/issues"
 
-[tool.poetry.dependencies]
-python = "^3.12"
-mkdocs = ">=1.4.0,<=1.6.1"
-properdocs = ">=1.6.7"
-python-frontmatter = "^1.1.0"
+[project.entry-points."mkdocs.plugins"]
+decision-records = "mkdocs_decision_records.plugin:DecisionRecordsPlugin"
 
-[tool.poetry.dev-dependencies]
-mkdocs-material = "^9.5.48"
-pytest = "^9.0.0"
-coverage = "^7.4.0"
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.5.48,<10",
+    "pytest>=9.0.0,<10",
+    "coverage>=7.4.0,<8",
+]
+
+[tool.uv]
+
+[tool.uv.build-backend]
+module-name = ["mkdocs_decision_records"]
+module-root = ""
+source-include = ["LICENSE"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.plugins."mkdocs.plugins"]
-decision-records = "mkdocs_decision_records.plugin:DecisionRecordsPlugin"
+requires = ["uv_build>=0.11.3,<0.12.0"]
+build-backend = "uv_build"
 
 [tool.coverage.run]
 omit = [

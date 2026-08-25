@@ -20,14 +20,14 @@ jobs:
     steps:
       - checkout
       - python/install-packages:
-          pkg-manager: poetry
+          pkg-manager: uv
       - run:
           name: Run tests
           command: |
-            poetry run coverage run -m pytest --junit-xml test-results/junit.xml --capture=no mkdocs_decision_records/
-            poetry run coverage report
-            poetry run coverage html
-            poetry run coverage xml -i
+            uv run coverage run -m pytest --junit-xml test-results/junit.xml --capture=no mkdocs_decision_records/
+            uv run coverage report
+            uv run coverage html
+            uv run coverage xml -i
       - store_artifacts:
           path: htmlcov
       - store_test_results:
@@ -54,12 +54,12 @@ jobs:
     steps:
       - checkout
       - python/install-packages:
-          pkg-manager: poetry
+          pkg-manager: uv
           args: --all-extras
       - run:
           name: Publish package
           command: |
-            poetry publish \
+            uv publish \
               --build \
               --username "$TWINE_USERNAME" \
               --password "$TWINE_PASSWORD"
