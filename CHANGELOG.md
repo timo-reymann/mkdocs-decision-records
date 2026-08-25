@@ -1,3 +1,9 @@
+## [2.4.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.1...2.4.2) (2026-08-25)
+
+### Bug Fixes
+
+* Rename sonar config to .sonarcloud.properties for automatic analysis ([4dcec63](https://github.com/timo-reymann/mkdocs-decision-records/commit/4dcec63ca37f54f10018942ba57988fb64ded43a))
+
 ## [2.4.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.0...2.4.1) (2026-08-25)
 
 ### Bug Fixes
