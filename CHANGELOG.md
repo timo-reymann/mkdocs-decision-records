@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.0...2.4.1) (2026-08-25)
+
+### Bug Fixes
+
+* Remove duplicate ID prefix ([2b95d5b](https://github.com/timo-reymann/mkdocs-decision-records/commit/2b95d5b924ea04722fa1f47e3e3d17b0895cc4e9))
+* Update demo ADR superseded_by format to use numeric ID ([acf6cce](https://github.com/timo-reymann/mkdocs-decision-records/commit/acf6cceaf2d39f12e8618d7ad69ad6dfa9b98a84))
+
 ## [2.4.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.3.2...2.4.0) (2026-08-25)
 
 ### Features
