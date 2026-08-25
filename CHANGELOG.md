@@ -1,3 +1,9 @@
+## [2.4.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.3.2...2.4.0) (2026-08-25)
+
+### Features
+
+* Migrate project to uv ([9aadc9a](https://github.com/timo-reymann/mkdocs-decision-records/commit/9aadc9a1601ea64ee4668cd1f66ec689e328e0d9))
+
 ## [2.3.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.3.1...2.3.2) (2026-08-17)
 
 ### Bug Fixes
