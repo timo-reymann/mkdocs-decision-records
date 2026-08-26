@@ -80,11 +80,31 @@ class InvalidMetaDataExcpetion(PluginError):
         self.message = f"Invalid metadata for {src_path}: {errors_lines}"
 
 
+def _normalize_id_for_comparison(value: Any) -> Any:
+    """Normalize a raw frontmatter id for equality comparison.
+
+    MkDocs' own frontmatter parser resolves a leading-zero id like ``008``
+    or ``009`` as a plain string (it looks like octal, but ``8``/``9`` are
+    not valid octal digits), while ``000``-``007`` resolve to ``int``. Without
+    normalization, comparing those inconsistent raw types against the
+    zero-padded display id can produce false positives/negatives.
+    """
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return value
+
+
 def _ensure_page_is_unique(dr_id, files, page):
+    normalized_dr_id = _normalize_id_for_comparison(dr_id)
     same_id_pages = [
         f.src_path
         for f in files.documentation_pages()
-        if f.page.meta and f.page.meta.get("id", None) == dr_id
+        if f.page is not None
+        and f.page is not page
+        and f.page.meta
+        and _normalize_id_for_comparison(f.page.meta.get("id", None))
+        == normalized_dr_id
     ]
     if len(same_id_pages) > 0:
         pages = ", ".join(same_id_pages)
