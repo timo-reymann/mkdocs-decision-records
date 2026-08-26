@@ -3,7 +3,7 @@ name = "mkdocs-decision-records"
 version = "2.4.4"
 description = "Manage decision records with mkdocs in a customizable and minimal fashion."
 authors = [{ name = "Timo Reymann", email = "mail@timo-reymann.de" }]
-requires-python = ">=3.12,<4"
+requires-python = ">=3.13,<4"
 readme = "README.md"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -12,7 +12,6 @@ classifiers = [
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
