@@ -1,3 +1,13 @@
+## [3.0.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.4...3.0.0) (2026-08-26)
+
+### ⚠ BREAKING CHANGES
+
+* Drop python 3.12 support officially
+
+### Features
+
+* Drop python 3.12 support officially ([33705ba](https://github.com/timo-reymann/mkdocs-decision-records/commit/33705baad7c1d4f2973df3f2ae02cf1b4ba3567d))
+
 ## [2.4.4](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.3...2.4.4) (2026-08-26)
 
 ### Bug Fixes
