@@ -1,3 +1,9 @@
+## [2.4.4](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.3...2.4.4) (2026-08-26)
+
+### Bug Fixes
+
+* Correct return type annotation in _require_meta ([2f00834](https://github.com/timo-reymann/mkdocs-decision-records/commit/2f00834ff82237a104403c1f8054b1deecfc6580))
+
 ## [2.4.3](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.2...2.4.3) (2026-08-26)
 
 ### Bug Fixes
