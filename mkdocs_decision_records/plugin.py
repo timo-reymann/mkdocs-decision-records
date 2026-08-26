@@ -153,7 +153,9 @@ class DecisionRecordsPlugin(BasePlugin):
         assert dr is not None
         return dr
 
-    def _generate_index(self) -> Generator[dict[str, str | list], Any, None]:
+    def _generate_index(
+        self,
+    ) -> Generator[dict[str, str | list | None], Any, None]:
         for dr in self._dr_page_mapping.values():
             if dr.is_template():
                 continue
@@ -163,6 +165,12 @@ class DecisionRecordsPlugin(BasePlugin):
                 "date": dr.date.isoformat(),
                 "title": dr.title,
                 "status": dr.status,
+                # Site-relative URL of the rendered page, e.g.
+                # "adr/001-mechanism-to-validate-mjml-code/" - lets consumers
+                # of the index link back to the decision record.
+                "url": dr.file.url,
+                "deciders": dr.deciders,
+                "ticket": dr.ticket,
             }
 
             if (content := dr.file.page.content) is not None:
