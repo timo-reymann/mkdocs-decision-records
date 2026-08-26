@@ -59,8 +59,8 @@ jobs:
       - run:
           name: Publish package
           command: |
+            uv build
             uv publish \
-              --build \
               --username "$TWINE_USERNAME" \
               --password "$TWINE_PASSWORD"
 workflows:
