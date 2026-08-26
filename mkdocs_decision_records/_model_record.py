@@ -161,7 +161,7 @@ def format_decision_record_display_id(_id: int | None, padded_len: int) -> str:
 
 def _require_meta(
     page: Page, field: str
-) -> str | int | datetime | InvalidMetaDataError:
+) -> str | int | datetime.datetime | InvalidMetaDataError:
     val = page.meta.get(field, None)
     if val is None:
         return InvalidMetaDataError(page, field, "Required, but not set.")
