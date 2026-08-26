@@ -148,6 +148,9 @@ Each entry has the shape:
   "date": "2024-01-01",
   "title": "Example decision",
   "status": "accepted",
+  "url": "adr/000-example-decision/",
+  "deciders": ["Jane Doe"],
+  "ticket": "FOO-123",
   "toc": "...",
   "sections": [
     { "title": "Context and Problem Statement", "text": "..." }
@@ -156,6 +159,10 @@ Each entry has the shape:
 }
 ```
 
+- `url` is the rendered page's URL, relative to the site root (join it with the site's base
+  URL to get a link to the decision record)
+- `deciders` and `ticket` mirror the record's frontmatter; `deciders` is `[]` and `ticket` is
+  `null` when not set
 - `toc` is the page's table of contents, as produced by MkDocs
 - `sections` lists the page's headings with their rendered text content
 - `superseded_by` is only present when `status` is `superseded`

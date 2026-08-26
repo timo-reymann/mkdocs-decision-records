@@ -638,3 +638,70 @@ def test_on_files_with_validation_enabled_valid_id():
     ]
     plugin.on_files(files, config=MagicMock())
     assert 1 == len(plugin._dr_page_mapping)
+
+
+def _dr_mock(*, status="accepted", superseded_by=None, deciders=None, ticket=None, is_template=False):
+    dr = MagicMock()
+    dr.is_template.return_value = is_template
+    dr.id = "001"
+    dr.date.isoformat.return_value = "2024-01-01"
+    dr.title = "001 - Some decision"
+    dr.status = status
+    dr.superseded_by = superseded_by
+    dr.deciders = deciders
+    dr.ticket = ticket
+    dr.file.url = "adr/001-some-decision/"
+    dr.file.page.content = "<h1 id='x'>001 - Some decision</h1><p>Body text</p>"
+    dr.file.page.toc = "toc"
+    return dr
+
+
+def test_generate_index_includes_url_deciders_and_ticket():
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping = {
+        "001": _dr_mock(deciders=["Alice", "Bob"], ticket="FOO-1"),
+    }
+
+    [entry] = list(plugin._generate_index())
+
+    assert entry["url"] == "adr/001-some-decision/"
+    assert entry["deciders"] == ["Alice", "Bob"]
+    assert entry["ticket"] == "FOO-1"
+
+
+def test_generate_index_defaults_deciders_and_ticket():
+    """A record without deciders/ticket frontmatter still carries the keys."""
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping = {"001": _dr_mock(deciders=[], ticket=None)}
+
+    [entry] = list(plugin._generate_index())
+
+    assert entry["deciders"] == []
+    assert entry["ticket"] is None
+
+
+def test_generate_index_excludes_template():
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping = {"000": _dr_mock(is_template=True)}
+
+    assert list(plugin._generate_index()) == []
+
+
+def test_generate_index_superseded_by_only_present_when_superseded():
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping = {
+        "001": _dr_mock(status="superseded", superseded_by="002"),
+    }
+
+    [entry] = list(plugin._generate_index())
+
+    assert entry["superseded_by"] == "002"
+
+
+def test_generate_index_no_superseded_by_when_not_superseded():
+    plugin = DecisionRecordsPlugin()
+    plugin._dr_page_mapping = {"001": _dr_mock(status="accepted")}
+
+    [entry] = list(plugin._generate_index())
+
+    assert "superseded_by" not in entry
