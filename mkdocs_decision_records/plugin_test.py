@@ -42,6 +42,58 @@ def test_on_page_markdown():
     assert "Decision 1" in result
 
 
+def test_on_page_markdown_does_not_flag_self_as_duplicate():
+    # MkDocs' own frontmatter parser resolves ids like 008/009 as plain
+    # strings (8/9 are not valid octal digits), unlike 000-007 which resolve
+    # to int. A page must never be considered a duplicate of itself
+    # regardless of how its raw id was typed.
+    plugin = DecisionRecordsPlugin()
+    page = MagicMock()
+    page.file.src_uri = "adr/008-decision.md"
+    page.file.src_path = "adr/008-decision.md"
+    page.file.page = page
+    page.meta = {
+        "id": "008",
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page.title = "Decision 8"
+    files = MagicMock()
+    files.documentation_pages.return_value = [page.file]
+    markdown = "This is a decision record."
+    result = plugin.on_page_markdown(markdown, page, {}, files)
+    assert "Decision 8" in result
+
+
+def test_on_page_markdown_raises_on_duplicate_id_across_pages():
+    plugin = DecisionRecordsPlugin()
+    other_file = MagicMock()
+    other_file.src_path = "adr/003-other-decision.md"
+    other_file.page.meta = {
+        "id": 3,
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page = MagicMock()
+    page.file.src_uri = "adr/003-decision.md"
+    page.file.src_path = "adr/003-decision.md"
+    page.file.page = page
+    page.meta = {
+        "id": 3,
+        "date": "2021-12-13",
+        "deciders": ["decider1"],
+        "status": "accepted",
+    }
+    page.title = "Decision 3"
+    files = MagicMock()
+    files.documentation_pages.return_value = [page.file, other_file]
+    markdown = "This is a decision record."
+    with pytest.raises(InvalidMetaDataError):
+        plugin.on_page_markdown(markdown, page, {}, files)
+
+
 def test_on_page_markdown_superseded_padded():
     plugin = DecisionRecordsPlugin()
     page_superseded = MagicMock()
