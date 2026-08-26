@@ -1,3 +1,9 @@
+## [3.0.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/3.0.0...3.0.1) (2026-08-26)
+
+### Bug Fixes
+
+* do not flag a decision record page as a duplicate of itself ([#116](https://github.com/timo-reymann/mkdocs-decision-records/issues/116)) ([bd6b9a9](https://github.com/timo-reymann/mkdocs-decision-records/commit/bd6b9a938c848ed1a6f32a5f431bfc224a889852))
+
 ## [3.0.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.4...3.0.0) (2026-08-26)
 
 ### ⚠ BREAKING CHANGES

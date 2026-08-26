@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-decision-records"
-version = "3.0.0"
+version = "3.0.1"
 description = "Manage decision records with mkdocs in a customizable and minimal fashion."
 authors = [{ name = "Timo Reymann", email = "mail@timo-reymann.de" }]
 requires-python = ">=3.13,<4"
