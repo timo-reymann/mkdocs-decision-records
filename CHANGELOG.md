@@ -1,3 +1,9 @@
+## [3.1.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/3.0.1...3.1.0) (2026-08-26)
+
+### Features
+
+* expose page url, deciders and ticket in decision_index.json ([#117](https://github.com/timo-reymann/mkdocs-decision-records/issues/117)) ([2468f16](https://github.com/timo-reymann/mkdocs-decision-records/commit/2468f160524baabe632636b0c3c23732e4a2cb5c))
+
 ## [3.0.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/3.0.0...3.0.1) (2026-08-26)
 
 ### Bug Fixes
