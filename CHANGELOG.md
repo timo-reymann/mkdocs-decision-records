@@ -1,3 +1,9 @@
+## [2.4.3](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.2...2.4.3) (2026-08-26)
+
+### Bug Fixes
+
+* **ci:** Fix build ([75d8a32](https://github.com/timo-reymann/mkdocs-decision-records/commit/75d8a320a01b91c062331a73e3e5d2b9624497fd))
+
 ## [2.4.2](https://github.com/timo-reymann/mkdocs-decision-records/compare/2.4.1...2.4.2) (2026-08-25)
 
 ### Bug Fixes
