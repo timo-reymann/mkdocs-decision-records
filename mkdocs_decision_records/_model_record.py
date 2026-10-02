@@ -5,6 +5,8 @@ from frontmatter import Post
 from mkdocs.structure.files import File
 from mkdocs.structure.pages import Page
 
+from mkdocs_decision_records._markdown_utils import extract_first_h1
+
 
 class InvalidMetaDataError:
     def __init__(self, page: Page, field: str, message: str):
@@ -48,8 +50,11 @@ class RawDecisionRecord:
     ticket: str | None = None
 
     @staticmethod
-    def from_file(file: File, meta: Post | None) -> "RawDecisionRecord":
+    def from_file(
+        file: File, meta: Post | None, markdown: str | None = None
+    ) -> "RawDecisionRecord":
         if meta:
+            markdown = meta.content
             meta = meta.to_dict()
         else:
             meta = file.page.meta
@@ -57,7 +62,11 @@ class RawDecisionRecord:
         return RawDecisionRecord(
             _file=file,
             _id=meta.get("id", None),
-            title=meta.get("title", None) or page_title,
+            # MkDocs only derives page.title from the H1 after on_page_markdown,
+            # so read the heading ourselves when there is no frontmatter title.
+            title=meta.get("title", None)
+            or page_title
+            or extract_first_h1(markdown),
             status=meta.get("status", None) or "",
             superseded_by=meta.get("superseded_by", None),
             date=meta.get("date", None),
