@@ -1,3 +1,9 @@
+## [3.1.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/3.1.0...3.1.1) (2026-10-02)
+
+### Bug Fixes
+
+* fall back to the page's H1 when no frontmatter title is set ([#119](https://github.com/timo-reymann/mkdocs-decision-records/issues/119)) ([c599cb7](https://github.com/timo-reymann/mkdocs-decision-records/commit/c599cb766419bbd96f2fafb6e4ca3d46db227fd3))
+
 ## [3.1.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/3.0.1...3.1.0) (2026-08-26)
 
 ### Features
