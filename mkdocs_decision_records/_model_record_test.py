@@ -2,6 +2,7 @@ import datetime
 from unittest.mock import MagicMock
 
 import pytest
+from frontmatter import Post
 
 from mkdocs_decision_records._model_record import (
     NormalizedDecisionRecord,
@@ -153,6 +154,27 @@ def test_raw_from_file_falls_back_to_page_title():
     file = _make_file(meta={"id": 1, "status": "accepted", "date": datetime.date(2024, 1, 1)})
     raw = RawDecisionRecord.from_file(file, None)
     assert raw.title == "Page Title"
+
+
+def test_raw_from_file_falls_back_to_h1_when_page_title_unset():
+    file = _make_file(
+        meta={"id": 1, "status": "accepted", "date": datetime.date(2024, 1, 1)},
+        page_title=None,
+    )
+    raw = RawDecisionRecord.from_file(file, None, "# Use Postgres\n\n## Context")
+    assert raw.title == "Use Postgres"
+
+
+def test_raw_from_file_falls_back_to_h1_from_post_content():
+    file = _make_file(page_title=None)
+    post = Post("# Use Postgres\n", id=1, status="accepted")
+    assert RawDecisionRecord.from_file(file, post).title == "Use Postgres"
+
+
+def test_raw_from_file_frontmatter_title_wins_over_h1():
+    file = _make_file(page_title=None)
+    post = Post("# Heading\n", id=1, title="Frontmatter")
+    assert RawDecisionRecord.from_file(file, post).title == "Frontmatter"
 
 
 def test_raw_display_id():

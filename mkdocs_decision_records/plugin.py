@@ -140,9 +140,12 @@ class DecisionRecordsPlugin(BasePlugin):
     _dr_page_mapping: dict[str, NormalizedDecisionRecord] = {}
 
     def _parse_decision_record_page(
-        self, file: File, meta: frontmatter.Post | None = None
+        self,
+        file: File,
+        meta: frontmatter.Post | None = None,
+        markdown: str | None = None,
     ) -> NormalizedDecisionRecord:
-        raw = RawDecisionRecord.from_file(file, meta)
+        raw = RawDecisionRecord.from_file(file, meta, markdown)
         dr, errors = raw.validate(
             validate_id_len=self.validate_id_length,
             padded_id_len=self.id_length,
@@ -239,7 +242,7 @@ class DecisionRecordsPlugin(BasePlugin):
         if self._is_section_index(page.file.src_uri):
             return markdown
 
-        dr = self._parse_decision_record_page(page.file)
+        dr = self._parse_decision_record_page(page.file, markdown=markdown)
 
         # set page title
         page.title = dr.title

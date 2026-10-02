@@ -1,4 +1,4 @@
-from mkdocs_decision_records._markdown_utils import _list, _meta_table
+from mkdocs_decision_records._markdown_utils import _list, _meta_table, extract_first_h1
 
 
 def test_meta_table():
@@ -42,3 +42,20 @@ def test_list_multiple_items():
 def test_list_empty():
     result = list(_list([]))
     assert result == ['<ul>', '</ul>']
+
+
+def test_extract_first_h1():
+    assert extract_first_h1("intro\n\n# Use Postgres\n\n## Context") == "Use Postgres"
+
+
+def test_extract_first_h1_strips_closing_hashes():
+    assert extract_first_h1("# Use Postgres ##") == "Use Postgres"
+
+
+def test_extract_first_h1_ignores_h2_and_fenced_code():
+    assert extract_first_h1("## Context\n```\n# comment\n```\n") is None
+
+
+def test_extract_first_h1_none_or_empty():
+    assert extract_first_h1(None) is None
+    assert extract_first_h1("") is None
