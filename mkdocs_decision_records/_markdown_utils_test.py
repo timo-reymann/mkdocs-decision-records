@@ -59,3 +59,11 @@ def test_extract_first_h1_ignores_h2_and_fenced_code():
 def test_extract_first_h1_none_or_empty():
     assert extract_first_h1(None) is None
     assert extract_first_h1("") is None
+
+
+def test_extract_first_h1_keeps_hashes_that_are_part_of_the_title():
+    assert extract_first_h1("# Adopt C#") == "Adopt C#"
+
+
+def test_extract_first_h1_skips_empty_heading():
+    assert extract_first_h1("# ##\n# Real title") == "Real title"
