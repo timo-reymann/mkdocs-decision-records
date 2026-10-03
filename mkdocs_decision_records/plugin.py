@@ -2,6 +2,7 @@ import json
 import re
 import os
 from typing import Any, Generator
+from urllib.parse import quote
 
 import frontmatter
 from mkdocs.config import config_options
@@ -10,6 +11,7 @@ from mkdocs.exceptions import PluginError
 from mkdocs.plugins import BasePlugin
 from mkdocs.structure.files import File, Files
 from mkdocs.structure.pages import Page
+from mkdocs.utils import get_relative_url
 
 from mkdocs_decision_records._html_parser import BasicTextContentParser
 from mkdocs_decision_records._markdown_utils import _list, _meta_table
@@ -39,6 +41,11 @@ CONFIG_DECISION_ID_LENGTH_KEY = "decision_id_length"
 CONFIG_DECISION_ID_LENGTH_DEFAULT = 3
 CONFIG_DECISION_ID_LENGTH_VALIDATE_KEY = "validate_id_length"
 CONFIG_DECISION_ID_LENGTH_VALIDATE_DEFAULT = False
+
+CONFIG_GENERATE_INDEX_PAGE_KEY = "generate_index_page"
+CONFIG_GENERATE_INDEX_PAGE_DEFAULT = False
+
+CONFIG_DECISIONS_INDEX_FILENAME = "index.md"
 
 
 def _normalize_decisions_folder(folder: str) -> str:
@@ -136,6 +143,12 @@ class DecisionRecordsPlugin(BasePlugin):
                 bool, default=CONFIG_DECISION_ID_LENGTH_VALIDATE_DEFAULT
             ),
         ),
+        (
+            CONFIG_GENERATE_INDEX_PAGE_KEY,
+            config_options.Type(
+                bool, default=CONFIG_GENERATE_INDEX_PAGE_DEFAULT
+            ),
+        ),
     )
     _dr_page_mapping: dict[str, NormalizedDecisionRecord] = {}
 
@@ -205,12 +218,27 @@ class DecisionRecordsPlugin(BasePlugin):
             f.write(dr_index)
 
     def on_files(self, files: Files, /, *, config: MkDocsConfig) -> Files | None:
-        docs_pages = files.documentation_pages()
         decisions_folder = _normalize_decisions_folder(
             self.config.get(
                 CONFIG_DECISIONS_FOLDER_KEY, CONFIG_DECISIONS_FOLDER_DEFAULT
             )
         )
+
+        # The plugin instance (and with it this mapping) survives rebuilds in
+        # `mkdocs serve` - start from a clean slate so records removed from the
+        # docs do not linger in the generated outputs.
+        self._dr_page_mapping = {}
+
+        if self.generate_index_page:
+            index_uri = f"{decisions_folder}/{CONFIG_DECISIONS_INDEX_FILENAME}"
+            for existing in [
+                f
+                for f in files
+                if f.src_uri.lower() == index_uri.lower()
+            ]:
+                files.remove(existing)
+
+        docs_pages = files.documentation_pages()
         for doc in docs_pages:
             # Only process files in the decisions folder
             # Use src_uri instead of src_path for OS-independent path matching
@@ -223,6 +251,14 @@ class DecisionRecordsPlugin(BasePlugin):
             parsed_frontmatter = frontmatter.loads(doc.content_string)
             dr = self._parse_decision_record_page(doc, parsed_frontmatter)
             self._dr_page_mapping[dr.id] = dr
+
+        if self.generate_index_page:
+            index_src_uri = f"{decisions_folder}/{CONFIG_DECISIONS_INDEX_FILENAME}"
+            index_file = File.generated(config, src_uri=index_src_uri, content="")
+            index_markdown = self._build_index_markdown(index_file)
+            if index_markdown is not None:
+                index_file.content_string = index_markdown
+                files.append(index_file)
 
     def on_page_markdown(
         self, markdown: str, page: Page, config: MkDocsConfig, files: Files
@@ -338,6 +374,13 @@ class DecisionRecordsPlugin(BasePlugin):
             CONFIG_DECISION_ID_LENGTH_VALIDATE_DEFAULT,
         )
 
+    @property
+    def generate_index_page(self):
+        return self.config.get(
+            CONFIG_GENERATE_INDEX_PAGE_KEY,
+            CONFIG_GENERATE_INDEX_PAGE_DEFAULT,
+        )
+
     @staticmethod
     def _is_section_index(src_uri: str) -> bool:
         return os.path.basename(src_uri).lower() == "index.md"
@@ -358,3 +401,116 @@ class DecisionRecordsPlugin(BasePlugin):
             return f"<a href='{self.config.get(CONFIG_TICKET_URL_PREFIX)}/{ticket}'>{ticket.upper()}</a>"
 
         return ticket.upper()
+
+    @staticmethod
+    def _format_date(value: Any) -> str:
+        # YAML quotes like `date: '2024-01-01'` keep the value a plain string,
+        # so accept both real dates and their string form.
+        isoformat = getattr(value, "isoformat", None)
+        return isoformat() if callable(isoformat) else str(value)
+
+    @staticmethod
+    def _strip_decision_id_prefix(title: str | None, dr_id: str) -> str:
+        """Drop the leading id from a title so the title cell does not repeat
+        the value already shown in the ID column.
+
+        Mirrors how RawDecisionRecord.validate derives the page title.
+        """
+        if not title:
+            return ""
+        for prefix in (dr_id, str(int(dr_id))):
+            if title.startswith(prefix):
+                return title[len(prefix) :].lstrip(" -_:.")
+        return title
+
+    @staticmethod
+    def _index_title(dr: NormalizedDecisionRecord) -> str:
+        # Records without a frontmatter title or H1 have no title during
+        # on_files - fall back to the filename like MkDocs' Page.title does,
+        # so the table never has an empty title cell.
+        title = dr.title
+        if not title:
+            title = dr.file.name.replace("-", " ").replace("_", " ")
+            if title.lower() == title:
+                title = title.capitalize()
+        return title
+
+    @staticmethod
+    def _format_deciders(deciders: list[str]) -> str:
+        if len(deciders) == 0:
+            return ""
+        if len(deciders) <= 3:
+            return ", ".join(deciders)
+        return ", ".join(deciders[:3]) + ", ..."
+
+    @staticmethod
+    def _escape_table_text(text: str) -> str:
+        """Escape characters that would break the markdown table cell or the
+        surrounding link syntax."""
+        return (
+            text.replace("\\", "\\\\")
+            .replace("|", "\\|")
+            .replace("[", "\\[")
+            .replace("]", "\\]")
+        )
+
+    def _index_status_badge(self, dr: NormalizedDecisionRecord) -> str:
+        try:
+            return self._create_status_badge(dr)
+        except InvalidMetaDataError:
+            return dr.status
+
+    def _build_index_markdown(self, index_file: File) -> str | None:
+        """Render the decision index table as markdown.
+
+        ``index_file`` is the (not yet populated) index page, so the title
+        links can be emitted relative to its location.
+
+        Returns ``None`` when there is nothing to list (i.e. only the
+        template record exists), so no file gets written in that case.
+        """
+        records = [dr for dr in self._dr_page_mapping.values() if not dr.is_template()]
+        if not records:
+            return None
+
+        records.sort(key=lambda dr: int(dr.id))
+
+        ticket_url_prefix = self.config.get(CONFIG_TICKET_URL_PREFIX)
+        show_ticket = ticket_url_prefix is not None
+
+        headers = ["ID", "Date", "Title", "Status"]
+        if show_ticket:
+            headers.append("Ticket")
+        headers.append("Deciders")
+
+        lines = [
+            "# Decision Records",
+            "",
+            "| " + " | ".join(headers) + " |",
+            "|" + "|".join(["---"] * len(headers)) + "|",
+        ]
+
+        for dr in records:
+            title = self._escape_table_text(
+                self._strip_decision_id_prefix(self._index_title(dr), dr.id)
+            )
+            # Link the source file relative to the index page: MkDocs resolves
+            # relative links against the source tree and rewrites them to the
+            # proper output URL on its own.
+            link = quote(get_relative_url(dr.file.src_uri, index_file.src_uri))
+            row = [
+                dr.id,
+                self._format_date(dr.date),
+                f"[{title}]({link})",
+                self._index_status_badge(dr),
+            ]
+            if show_ticket:
+                row.append(
+                    f"[{dr.ticket.upper()}]({ticket_url_prefix}/{dr.ticket})"
+                    if dr.ticket
+                    else ""
+                )
+            row.append(self._escape_table_text(self._format_deciders(dr.deciders)))
+            lines.append("| " + " | ".join(row) + " |")
+
+        return "\n".join(lines) + "\n"
