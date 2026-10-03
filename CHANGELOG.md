@@ -1,3 +1,9 @@
+## [3.2.0](https://github.com/timo-reymann/mkdocs-decision-records/compare/3.1.1...3.2.0) (2026-10-03)
+
+### Features
+
+* add opt-in generate_index_page index table ([#120](https://github.com/timo-reymann/mkdocs-decision-records/issues/120)) ([9beb2e8](https://github.com/timo-reymann/mkdocs-decision-records/commit/9beb2e8c09716ba256091521680b7a54f95e9408))
+
 ## [3.1.1](https://github.com/timo-reymann/mkdocs-decision-records/compare/3.1.0...3.1.1) (2026-10-02)
 
 ### Bug Fixes
