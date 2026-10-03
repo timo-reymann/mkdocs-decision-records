@@ -6,9 +6,11 @@ plugins:
       ticket_url_prefix: https://google.com/
       lifecycle_stages: { }
       required_deciders_count: 0
+      generate_index_page: true
 nav:
   - index.md
   - Architecture Decision Records:
+      - adr/index.md
       - adr/000-TEMPLATE.md
       - adr/001.md
       - adr/002-Solution-for-preview.md

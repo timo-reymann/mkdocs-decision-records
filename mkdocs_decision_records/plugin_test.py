@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import yaml
-from mkdocs.structure.files import File
+from mkdocs.structure.files import File, Files
 
 from mkdocs_decision_records.plugin import (
     CONFIG_LIFECYCLE_COLORS_KEY,
@@ -705,3 +705,416 @@ def test_generate_index_no_superseded_by_when_not_superseded():
     [entry] = list(plugin._generate_index())
 
     assert "superseded_by" not in entry
+
+
+def _index_dr_mock(
+    *,
+    dr_id="001",
+    title=None,
+    status="accepted",
+    deciders=None,
+    ticket=None,
+    is_template=False,
+    src_uri=None,
+    date="2024-01-01",
+):
+    dr = MagicMock()
+    dr.is_template.return_value = is_template
+    dr.id = dr_id
+    dr.date.isoformat.return_value = date
+    dr.title = title if title is not None else f"{dr_id} - Some decision"
+    dr.status = status
+    dr.deciders = deciders if deciders is not None else []
+    dr.ticket = ticket
+    dr.file.src_uri = src_uri or f"adr/{dr_id}-some-decision.md"
+    dr.file.url = dr.file.src_uri.replace(".md", "/")
+    return dr
+
+
+def _index_file(src_uri="adr/index.md") -> File:
+    return File.generated(MagicMock(), src_uri=src_uri, content="")
+
+
+def _index_plugin(**options) -> DecisionRecordsPlugin:
+    # BasePlugin.config is a class-level dict shared by every instance, so
+    # load_config() is used to give each test an isolated instance config.
+    plugin = DecisionRecordsPlugin()
+    errors, _warnings = plugin.load_config(options)
+    assert not errors
+    plugin._dr_page_mapping = {}
+    return plugin
+
+
+def _index_rows(markdown: str) -> list[list[str]]:
+    rows = []
+    for line in markdown.splitlines():
+        if not line.startswith("|") or line.startswith("|---") or line.startswith("| ID "):
+            continue
+        rows.append([cell.strip() for cell in line.strip("|").split("|")])
+    return rows
+
+
+def test_generate_index_page_default_is_false():
+    plugin = _index_plugin()
+
+    assert plugin.generate_index_page is False
+
+
+def test_build_index_markdown_header_columns():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {"001": _index_dr_mock()}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "| ID | Date | Title | Status | Deciders |" in markdown
+
+
+def test_build_index_markdown_returns_none_for_empty_mapping():
+    plugin = _index_plugin()
+
+    assert plugin._build_index_markdown(_index_file()) is None
+
+
+def test_build_index_markdown_returns_none_when_only_template():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {"000": _index_dr_mock(dr_id="000", is_template=True)}
+
+    assert plugin._build_index_markdown(_index_file()) is None
+
+
+def test_build_index_markdown_excludes_template():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {
+        "000": _index_dr_mock(dr_id="000", is_template=True),
+        "001": _index_dr_mock(dr_id="001"),
+    }
+
+    rows = _index_rows(plugin._build_index_markdown(_index_file()))
+
+    assert len(rows) == 1
+    assert rows[0][0] == "001"
+
+
+def test_build_index_markdown_sorts_by_id_numerically():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {
+        "10": _index_dr_mock(dr_id="10", title="10 - Tenth"),
+        "2": _index_dr_mock(dr_id="2", title="2 - Second"),
+        "1": _index_dr_mock(dr_id="1", title="1 - First"),
+    }
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert [row[0] for row in _index_rows(markdown)] == ["1", "2", "10"]
+
+
+def test_build_index_markdown_title_is_link_with_prefix_stripped():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {
+        "001": _index_dr_mock(
+            dr_id="001",
+            title="001 - Mechanism to validate mjml code",
+            src_uri="adr/001-mechanism-to-validate-mjml-code.md",
+        ),
+    }
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert (
+        "| [Mechanism to validate mjml code](001-mechanism-to-validate-mjml-code.md) |"
+        in markdown
+    )
+    assert "001 - Mechanism" not in markdown
+
+
+@pytest.mark.parametrize(
+    ["dr_id", "filename", "expected_title"],
+    [
+        ("002", "002-Solution-for-preview", "Solution for preview"),
+        ("001", "my-notes", "My notes"),
+    ],
+)
+def test_build_index_markdown_title_falls_back_to_filename(
+    dr_id, filename, expected_title
+):
+    """Records with no frontmatter title and no H1 are titled from the file name."""
+    plugin = _index_plugin()
+    dr = _index_dr_mock(dr_id=dr_id, title="")
+    dr.file.name = filename
+    plugin._dr_page_mapping = {dr_id: dr}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert f"[{expected_title}](" in markdown
+
+
+def test_build_index_markdown_quotes_link_for_special_characters():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {
+        "001": _index_dr_mock(dr_id="001", src_uri="adr/001 with space.md"),
+    }
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "](001%20with%20space.md)" in markdown
+
+
+def test_build_index_markdown_escapes_table_breaking_characters():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {
+        "001": _index_dr_mock(
+            dr_id="001",
+            title="001 - Foo | Bar [baz]",
+            deciders=["A | B", "C"],
+        ),
+    }
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "[Foo \\| Bar \\[baz\\]](" in markdown
+    assert "A \\| B, C" in markdown
+
+
+def test_build_index_markdown_links_records_in_subfolders():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {
+        "001": _index_dr_mock(dr_id="001", src_uri="adr/nested/001-decision.md"),
+    }
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "](nested/001-decision.md)" in markdown
+
+
+@pytest.mark.parametrize(
+    ["deciders", "expected_cell"],
+    [
+        ([], ""),
+        (["Alice"], "Alice"),
+        (["Alice", "Bob"], "Alice, Bob"),
+        (["A", "B", "C"], "A, B, C"),
+        (["A", "B", "C", "D"], "A, B, C, ..."),
+        (["A", "B", "C", "D", "E"], "A, B, C, ..."),
+    ],
+)
+def test_build_index_markdown_deciders_truncation(deciders, expected_cell):
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {"001": _index_dr_mock(deciders=deciders)}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    # id, date, title, status, deciders
+    assert _index_rows(markdown)[0][4] == expected_cell
+
+
+def test_build_index_markdown_no_ticket_column_without_prefix():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {"001": _index_dr_mock(ticket="FOO-1")}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "Ticket" not in markdown
+    assert "FOO-1" not in markdown
+
+
+def test_build_index_markdown_ticket_column_linked_with_prefix():
+    plugin = _index_plugin(ticket_url_prefix="https://jira.example.com")
+    plugin._dr_page_mapping = {"001": _index_dr_mock(ticket="foo-1")}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "| Ticket |" in markdown
+    assert "| [FOO-1](https://jira.example.com/foo-1) |" in markdown
+
+
+def test_build_index_markdown_ticket_cell_empty_when_record_has_no_ticket():
+    plugin = _index_plugin(ticket_url_prefix="https://jira.example.com")
+    plugin._dr_page_mapping = {"001": _index_dr_mock(ticket=None)}
+
+    # id, date, title, status, ticket, deciders
+    assert _index_rows(plugin._build_index_markdown(_index_file()))[0][4] == ""
+
+
+def test_build_index_markdown_renders_status_badge():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {"001": _index_dr_mock(status="accepted")}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "background:#28a745" in markdown
+    assert ">accepted</span>" in markdown
+
+
+def test_build_index_markdown_unknown_status_falls_back_to_plain_text():
+    plugin = _index_plugin()
+    plugin._dr_page_mapping = {"001": _index_dr_mock(status="draft")}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "| draft |" in markdown
+
+
+def test_build_index_markdown_formats_string_dates():
+    """YAML keeps quoted dates as plain strings - the table must still render."""
+    plugin = _index_plugin()
+    dr = _index_dr_mock()
+    dr.date = "2024-01-01"
+    plugin._dr_page_mapping = {"001": dr}
+
+    markdown = plugin._build_index_markdown(_index_file())
+
+    assert "| 001 | 2024-01-01 |" in markdown
+
+
+def test_on_files_appends_generated_index_file():
+    plugin = _index_plugin(generate_index_page=True)
+    config = MagicMock()
+    files = Files(
+        [
+            File.generated(
+                config,
+                src_uri="adr/001-decision.md",
+                content=_create_content(
+                    "# ADR 001",
+                    {"id": "001", "status": "accepted", "date": "2024-01-01"},
+                ),
+            ),
+        ]
+    )
+
+    plugin.on_files(files, config=config)
+
+    assert "adr/index.md" in [f.src_uri for f in files]
+    index_file = next(f for f in files if f.src_uri == "adr/index.md")
+    assert "| ID | Date | Title | Status | Deciders |" in index_file.content_string
+    assert "001" in index_file.content_string
+    # links must be source-relative so MkDocs can resolve and rewrite them
+    assert "](001-decision.md)" in index_file.content_string
+    assert "](adr/001-decision" not in index_file.content_string
+
+
+def test_on_files_skips_index_generation_when_disabled():
+    plugin = _index_plugin()
+    config = MagicMock()
+    files = Files(
+        [
+            File.generated(
+                config,
+                src_uri="adr/001-decision.md",
+                content=_create_content(
+                    "# ADR 001",
+                    {"id": "001", "status": "accepted", "date": "2024-01-01"},
+                ),
+            ),
+        ]
+    )
+
+    plugin.on_files(files, config=config)
+
+    assert "adr/index.md" not in [f.src_uri for f in files]
+
+
+def test_on_files_keeps_user_index_when_disabled():
+    plugin = _index_plugin()
+    config = MagicMock()
+    files = Files(
+        [File.generated(config, src_uri="adr/index.md", content="# My own index")]
+    )
+
+    plugin.on_files(files, config=config)
+
+    [index_file] = [f for f in files if f.src_uri == "adr/index.md"]
+    assert index_file.content_string == "# My own index"
+
+
+def test_on_files_overrides_existing_index_when_enabled():
+    plugin = _index_plugin(generate_index_page=True)
+    config = MagicMock()
+    files = Files(
+        [
+            File.generated(config, src_uri="adr/index.md", content="# My own index"),
+            File.generated(
+                config,
+                src_uri="adr/001-decision.md",
+                content=_create_content(
+                    "# ADR 001",
+                    {"id": "001", "status": "accepted", "date": "2024-01-01"},
+                ),
+            ),
+        ]
+    )
+
+    plugin.on_files(files, config=config)
+
+    index_files = [f for f in files if f.src_uri == "adr/index.md"]
+    assert len(index_files) == 1
+    assert "# My own index" not in index_files[0].content_string
+    assert "| ID | Date | Title | Status | Deciders |" in index_files[0].content_string
+
+
+def test_on_files_skips_index_when_only_template_exists():
+    plugin = _index_plugin(generate_index_page=True)
+    config = MagicMock()
+    files = Files(
+        [
+            File.generated(
+                config,
+                src_uri="adr/000-template.md",
+                content=_create_content(
+                    "# Template",
+                    {"id": "000", "status": "proposed", "date": "2024-01-01"},
+                ),
+            ),
+        ]
+    )
+
+    plugin.on_files(files, config=config)
+
+    assert "adr/index.md" not in [f.src_uri for f in files]
+
+
+def test_on_files_clears_records_from_previous_build():
+    """`mkdocs serve` reuses the plugin - deleted records must not linger."""
+    plugin = _index_plugin(generate_index_page=True)
+    plugin._dr_page_mapping = {"009": _index_dr_mock(dr_id="009")}
+    config = MagicMock()
+    files = Files(
+        [
+            File.generated(
+                config,
+                src_uri="adr/001-decision.md",
+                content=_create_content(
+                    "# ADR 001",
+                    {"id": "001", "status": "accepted", "date": "2024-01-01"},
+                ),
+            ),
+        ]
+    )
+
+    plugin.on_files(files, config=config)
+
+    assert "009" not in plugin._dr_page_mapping
+    assert "001" in plugin._dr_page_mapping
+
+
+def test_on_files_generates_index_in_nested_decisions_folder():
+    plugin = _index_plugin(
+        decisions_folder="internal/adr", generate_index_page=True
+    )
+    config = MagicMock()
+    files = Files(
+        [
+            File.generated(
+                config,
+                src_uri="internal/adr/001-decision.md",
+                content=_create_content(
+                    "# ADR 001",
+                    {"id": "001", "status": "accepted", "date": "2024-01-01"},
+                ),
+            ),
+        ]
+    )
+
+    plugin.on_files(files, config=config)
+
+    assert "internal/adr/index.md" in [f.src_uri for f in files]

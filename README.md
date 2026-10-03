@@ -22,6 +22,7 @@ mkdocs-decision-records
 - Customizable status colors and lifecycle
 - Enforces information to be present for ADRs
 - Allows description being kept as markdown
+- Opt-in generated index page listing all decision records
 
 ## Demo
 
@@ -42,12 +43,14 @@ mkdocs-decision-records
        required_deciders_count: 1
        # Configure the length of decision IDs (default: 3)
        decision_id_length: 3
-       # Enable validation that IDs match the configured length (default: false)
-       # When enabled, IDs that don't match the configured length will be rejected
-       validate_id_length: false
-       # Configure available stages and the badge colors
-       lifecycle_stages:
-         {status}: {color}
+        # Enable validation that IDs match the configured length (default: false)
+        # When enabled, IDs that don't match the configured length will be rejected
+        validate_id_length: false
+        # Generate an index.md listing all decision records (default: false)
+        generate_index_page: false
+        # Configure available stages and the badge colors
+        lifecycle_stages:
+          {status}: {color}
    ```
 3. Create your ADRs ensuring to add the frontmatter meta data:
    ```markdown
@@ -166,6 +169,26 @@ Each entry has the shape:
 - `toc` is the page's table of contents, as produced by MkDocs
 - `sections` lists the page's headings with their rendered text content
 - `superseded_by` is only present when `status` is `superseded`
+
+## Generated index page
+
+With `generate_index_page: true`, the plugin writes an `index.md` into the decisions folder (e.g.
+`adr/index.md`) listing every decision record as a markdown table:
+
+| ID   | Date       | Title                                         | Status     | Ticket                                       | Deciders         |
+|------|------------|-----------------------------------------------|------------|----------------------------------------------|------------------|
+| 001  | 2021-03-26 | [Mechanism to validate mjml code](001-mechanism-to-validate-mjml-code.md) | accepted   | [FOO-100](https://ticket.example.com/FOO-100) | Jane, John, Jill |
+
+- The template record (`id: 000`) is never listed; if it is the only record, no file is written at all.
+- Rows are sorted by ID in ascending numeric order.
+- The title cell links to the decision record and drops the id prefix the record pages show.
+- The status cell renders the configured lifecycle badge.
+- The `Ticket` column only exists when `ticket_url_prefix` is configured.
+- Only the first three deciders are listed; additional ones are summarized as `...`.
+- While the option is enabled, an existing `index.md` in the decisions folder is overwritten.
+
+The generated page is rendered like any other documentation page, so it works as a section landing
+page for plugins that pick up a folder's `index.md`.
 
 ## Motivation
 
